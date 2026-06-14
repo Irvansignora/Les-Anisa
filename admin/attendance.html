@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kehadiran — Les Anisa Admin</title>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <link rel="stylesheet" href="../assets/css/dashboard.css"/>
+</head>
+<body>
+<div class="dash-wrapper">
+  <div class="dash-main">
+    <div class="dash-content">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div><h1 class="page-title">Input Kehadiran</h1><p class="page-sub" id="att-sub">Pilih tanggal dan isi kehadiran murid</p></div>
+        <button class="btn btn-primary" id="save-att-btn" onclick="saveAttendance()">💾 Simpan Kehadiran</button>
+      </div>
+
+      <!-- Date + summary -->
+      <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="font-size:14px;font-weight:600;color:var(--sage-700)">📅 Tanggal:</label>
+          <input type="date" class="form-input" id="att-date" style="width:auto"/>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto" id="att-summary">
+          <span class="badge badge-green">Hadir: <span id="cnt-hadir">0</span></span>
+          <span class="badge badge-amber">Izin: <span id="cnt-izin">0</span></span>
+          <span class="badge badge-blue">Sakit: <span id="cnt-sakit">0</span></span>
+          <span class="badge badge-red">Alpha: <span id="cnt-alpha">0</span></span>
+        </div>
+      </div>
+
+      <!-- Attendance table -->
+      <div class="section-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Murid</th><th>Jenjang</th><th>Status</th><th>Keterangan</th>
+            </tr></thead>
+            <tbody id="att-body">
+              <tr><td colspan="4"><div class="empty-state"><div class="spinner mx-auto"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script type="module">
+import { db, auth, collection, getDocs, addDoc, updateDoc, doc, query, where, orderBy, onAuthStateChanged, serverTimestamp }
+  from '../assets/js/firebase-config.js';
+import { initAdminShell } from '../assets/js/admin-shell.js';
+import { toast, formatDate, avatarInitial, ATT_STATUS, todayISO } from '../assets/js/utils.js';
+
+await initAdminShell('attendance');
+
+let students = [];
+let records  = {}; // studentId -> { status, note, docId? }
+
+// ── Set today as default date ────────────────────────────────────────────
+const dateInput = document.getElementById('att-date');
+dateInput.value = todayISO();
+dateInput.addEventListener('change', () => loadForDate(dateInput.value));
+
+// ── Load active students ─────────────────────────────────────────────────
+async function loadStudents() {
+  const snap = await getDocs(query(collection(db,'students'), orderBy('name')));
+  students   = snap.docs.map(d => ({ id:d.id, ...d.data() })).filter(s => s.is_active !== false);
+  document.getElementById('att-sub').textContent = `${students.length} murid aktif`;
+  await loadForDate(dateInput.value);
+}
+
+// ── Load existing attendance for date ────────────────────────────────────
+async function loadForDate(date) {
+  if (!date) return;
+  records = {};
+  // Default all to hadir
+  students.forEach(s => { records[s.id] = { status:'hadir', note:'' }; });
+
+  // Fetch existing
+  const snap = await getDocs(query(collection(db,'attendance'), where('date','==',date)));
+  snap.docs.forEach(d => {
+    const data = d.data();
+    records[data.student_id] = { status:data.status, note:data.note||'', docId:d.id };
+  });
+
+  renderTable();
+}
+
+// ── Render ───────────────────────────────────────────────────────────────
+function renderTable() {
+  if (!students.length) {
+    document.getElementById('att-body').innerHTML =
+      '<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">👶</div><p>Belum ada murid aktif</p></div></td></tr>';
+    return;
+  }
+  document.getElementById('att-body').innerHTML = students.map(s => {
+    const rec = records[s.id] || { status:'hadir', note:'' };
+    const statusBtns = ['hadir','izin','sakit','alpha'].map(st =>
+      `<button class="att-btn ${st}${rec.status===st?' active':''}" onclick="setStatus('${s.id}','${st}')">${ATT_STATUS[st].label}</button>`
+    ).join('');
+    return `<tr id="row-${s.id}">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar avatar-sm">${avatarInitial(s.name)}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--sage-900)">${s.name}</div>
+            ${s.nickname ? `<div style="font-size:11px;color:var(--sage-400)">${s.nickname}</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--sage-500)">${s.grade||'-'}</td>
+      <td><div class="att-status-group" id="status-${s.id}">${statusBtns}</div></td>
+      <td><input type="text" class="form-input" style="width:160px;font-size:12px;padding:6px 10px" placeholder="Keterangan..." id="note-${s.id}" value="${rec.note}" onchange="setNote('${s.id}',this.value)"/></td>
+    </tr>`;
+  }).join('');
+  updateSummary();
+}
+
+// ── Set status ────────────────────────────────────────────────────────────
+window.setStatus = function(studentId, status) {
+  records[studentId] = { ...(records[studentId]||{}), status };
+  const group = document.getElementById(`status-${studentId}`);
+  group.querySelectorAll('.att-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.classList.contains(status));
+  });
+  updateSummary();
+};
+window.setNote = function(studentId, note) {
+  records[studentId] = { ...(records[studentId]||{}), note };
+};
+
+function updateSummary() {
+  ['hadir','izin','sakit','alpha'].forEach(st => {
+    document.getElementById(`cnt-${st}`).textContent =
+      Object.values(records).filter(r => r.status===st).length;
+  });
+}
+
+// ── Save ─────────────────────────────────────────────────────────────────
+window.saveAttendance = async function() {
+  const date = dateInput.value;
+  if (!date) { toast('Pilih tanggal terlebih dahulu','error'); return; }
+  const btn = document.getElementById('save-att-btn');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  try {
+    for (const [studentId, rec] of Object.entries(records)) {
+      const data = { student_id:studentId, date, status:rec.status, note:rec.note||'', updated_at:serverTimestamp() };
+      if (rec.docId) {
+        await updateDoc(doc(db,'attendance',rec.docId), data);
+      } else {
+        data.created_at = serverTimestamp();
+        const newDoc = await addDoc(collection(db,'attendance'), data);
+        records[studentId].docId = newDoc.id;
+      }
+    }
+    toast(`Kehadiran ${date} berhasil disimpan!`, 'success');
+  } catch(e) { toast('Gagal menyimpan: '+e.message,'error'); }
+  btn.disabled = false; btn.textContent = '💾 Simpan Kehadiran';
+};
+
+loadStudents();
+</script>
+</body>
+</html>

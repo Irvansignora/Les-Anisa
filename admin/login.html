@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Masuk — Les Anisa</title>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <style>
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--cream-100), var(--sage-50)); padding: 20px; }
+    .login-wrap { width: 100%; max-width: 400px; }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo-icon { width: 56px; height: 56px; background: var(--sage-600); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 12px; }
+    .login-logo h1 { font-family: var(--font-display); font-size: 24px; color: var(--sage-900); }
+    .login-logo p  { font-size: 13px; color: var(--sage-500); margin-top: 4px; }
+    .login-card { background: white; border-radius: var(--radius-2xl); border: 1px solid var(--sage-100); padding: 32px; box-shadow: var(--shadow-md); }
+    .show-pass { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 16px; color: var(--sage-400); }
+    .pass-wrap { position: relative; }
+    .login-back { text-align: center; margin-top: 20px; }
+    .login-back a { font-size: 13px; color: var(--sage-500); text-decoration: none; }
+    .login-back a:hover { color: var(--sage-700); }
+    .error-box { background: #fee2e2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px; color: #dc2626; margin-bottom: 16px; display: none; }
+  </style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-logo">
+    <div class="login-logo-icon">📚</div>
+    <h1>Les Anisa</h1>
+    <p>Bimbingan Calistung TK, PAUD & SD</p>
+  </div>
+  <div class="login-card">
+    <h2 style="font-size:20px;color:var(--sage-900);margin-bottom:4px">Selamat Datang!</h2>
+    <p style="font-size:13px;color:var(--sage-400);margin-bottom:24px">Masuk ke dashboard Anda</p>
+
+    <div class="error-box" id="error-box"></div>
+
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="email" placeholder="email@contoh.com" autocomplete="email" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="pass-wrap">
+          <input type="password" class="form-input" id="password" placeholder="••••••••" autocomplete="current-password" required/>
+          <button type="button" class="show-pass" onclick="togglePass()">👁</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full mt-3" id="login-btn" style="padding:13px;font-size:15px">
+        <span id="login-btn-text">Masuk</span>
+      </button>
+    </form>
+  </div>
+  <div class="login-back">
+    <a href="../index.html">← Kembali ke halaman utama</a>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, doc, getDoc }
+  from '../assets/js/firebase-config.js';
+import { toast } from '../assets/js/utils.js';
+
+// If already logged in, redirect
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return;
+  await redirectByRole(user);
+});
+
+async function redirectByRole(user) {
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const role = snap.exists() ? snap.data().role : 'parent';
+    if (role === 'admin') {
+      window.location.href = 'dashboard.html';
+    } else {
+      window.location.href = '../parent/dashboard.html';
+    }
+  } catch {
+    window.location.href = '../parent/dashboard.html';
+  }
+}
+
+window.doLogin = async function(e) {
+  e.preventDefault();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('login-btn');
+  const txt      = document.getElementById('login-btn-text');
+  const errBox   = document.getElementById('error-box');
+
+  btn.disabled  = true;
+  txt.textContent = '⏳ Masuk...';
+  errBox.style.display = 'none';
+
+  try {
+    const { user } = await signInWithEmailAndPassword(auth, email, password);
+    await redirectByRole(user);
+  } catch(err) {
+    const msgs = {
+      'auth/user-not-found':  'Email tidak terdaftar',
+      'auth/wrong-password':  'Password salah',
+      'auth/invalid-email':   'Format email tidak valid',
+      'auth/too-many-requests':'Terlalu banyak percobaan. Coba lagi nanti.',
+      'auth/invalid-credential': 'Email atau password salah',
+    };
+    errBox.textContent = msgs[err.code] || 'Login gagal. Periksa email & password.';
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    txt.textContent = 'Masuk';
+  }
+};
+
+window.togglePass = function() {
+  const inp = document.getElementById('password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+};
+</script>
+</body>
+</html>

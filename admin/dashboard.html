@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Admin — Les Anisa</title>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <link rel="stylesheet" href="../assets/css/dashboard.css"/>
+</head>
+<body>
+<div class="dash-wrapper">
+  <!-- Sidebar -->
+  <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div><div class="sidebar-logo-text">Les Anisa</div><div class="sidebar-logo-sub">Admin Panel</div></div>
+    </a>
+    <div class="sidebar-user">
+      <div class="avatar" id="sb-avatar">A</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sb-name">Admin</div>
+        <div class="sidebar-user-role">Administrator</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"  class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="students.html"   class="nav-item"><span class="nav-icon">👶</span> Data Murid</a>
+      <a href="progress.html"   class="nav-item"><span class="nav-icon">📋</span> Laporan Belajar</a>
+      <a href="attendance.html" class="nav-item"><span class="nav-icon">📅</span> Kehadiran</a>
+      <a href="enrollment.html" class="nav-item"><span class="nav-icon">📝</span> Pendaftaran</a>
+      <div class="nav-divider"></div>
+      <a href="settings.html"   class="nav-item"><span class="nav-icon">⚙️</span> Pengaturan Web</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="../index.html" target="_blank" class="sidebar-view-site">🌐 Lihat Website</a>
+      <button class="btn-logout" onclick="doLogout()">🚪 Keluar</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="dash-main">
+    <div class="dash-topbar">
+      <button onclick="openSidebar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--sage-700)">☰</button>
+      <span style="font-family:var(--font-display);font-weight:700;color:var(--sage-900)">Les Anisa</span>
+      <button onclick="doLogout()" style="background:none;border:none;font-size:20px;cursor:pointer">🚪</button>
+    </div>
+    <div class="dash-content">
+      <div class="page-header">
+        <h1 class="page-title">Dashboard Admin</h1>
+        <p class="page-sub" id="today-date"></p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card stat-sage">
+          <div class="stat-icon">👶</div>
+          <div class="stat-value" id="st-students">–</div>
+          <div class="stat-label">Total Murid</div>
+          <div class="stat-sub" id="st-active">– aktif</div>
+        </div>
+        <div class="stat-card stat-blue">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value" id="st-sessions">–</div>
+          <div class="stat-label">Sesi Belajar</div>
+          <div class="stat-sub">Total tercatat</div>
+        </div>
+        <div class="stat-card stat-amber">
+          <div class="stat-icon">📝</div>
+          <div class="stat-value" id="st-pending">–</div>
+          <div class="stat-label">Pendaftaran Baru</div>
+          <div class="stat-sub">Menunggu review</div>
+        </div>
+        <div class="stat-card stat-terra">
+          <div class="stat-icon">🌟</div>
+          <div class="stat-value" id="st-programs">–</div>
+          <div class="stat-label">Program Aktif</div>
+          <div class="stat-sub">Calistung</div>
+        </div>
+      </div>
+
+      <!-- Program breakdown -->
+      <div class="section-card">
+        <div class="section-head"><h2>Distribusi Program Calistung</h2></div>
+        <div id="program-breakdown" style="padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div class="empty-state" style="grid-column:1/-1;padding:24px"><div class="spinner mx-auto"></div></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
+        <!-- Recent progress -->
+        <div class="section-card">
+          <div class="section-head">
+            <h2>Laporan Terbaru</h2>
+            <a href="progress.html" style="font-size:13px;color:var(--sage-600);text-decoration:none">Lihat semua</a>
+          </div>
+          <div id="recent-progress">
+            <div class="empty-state"><div class="spinner mx-auto"></div></div>
+          </div>
+        </div>
+        <!-- Pending enrollments -->
+        <div class="section-card">
+          <div class="section-head">
+            <h2>Pendaftaran Pending</h2>
+            <a href="enrollment.html" style="font-size:13px;color:var(--sage-600);text-decoration:none">Lihat semua</a>
+          </div>
+          <div id="pending-enrollments">
+            <div class="empty-state"><div class="spinner mx-auto"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px">
+        <a href="students.html?action=new" class="card" style="display:flex;align-items:center;gap:14px;text-decoration:none;transition:box-shadow .2s;background:var(--sage-50);border-color:var(--sage-200)">
+          <span style="font-size:32px">👶</span>
+          <div><div style="font-weight:600;color:var(--sage-900);font-size:14px">Tambah Murid</div><div style="font-size:12px;color:var(--sage-500)">Daftarkan anak baru</div></div>
+        </a>
+        <a href="progress.html?action=new" class="card" style="display:flex;align-items:center;gap:14px;text-decoration:none;background:#eff6ff;border-color:#dbeafe">
+          <span style="font-size:32px">📝</span>
+          <div><div style="font-weight:600;color:var(--sage-900);font-size:14px">Input Laporan</div><div style="font-size:12px;color:var(--sage-500)">Catat sesi belajar</div></div>
+        </a>
+        <a href="settings.html" class="card" style="display:flex;align-items:center;gap:14px;text-decoration:none;background:#fffbeb;border-color:#fde68a">
+          <span style="font-size:32px">⚙️</span>
+          <div><div style="font-weight:600;color:var(--sage-900);font-size:14px">Edit Website</div><div style="font-size:12px;color:var(--sage-500)">Ubah konten landing</div></div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script type="module">
+import { db, auth, collection, getDocs, query, where, orderBy, limit, onAuthStateChanged, signOut, doc, getDoc }
+  from '../assets/js/firebase-config.js';
+import { toast, formatDate, avatarInitial, scoreClass, SUBJECT_ICONS, requireAuth }
+  from '../assets/js/utils.js';
+
+// ── Auth guard ──────────────────────────────────────────────────────────
+const user = await requireAuth(auth, onAuthStateChanged, 'login.html');
+const userSnap = await getDoc(doc(db, 'users', user.uid));
+if (userSnap.exists() && userSnap.data().role !== 'admin') {
+  window.location.href = '../parent/dashboard.html'; // not admin
+}
+const userName = userSnap.data()?.name || user.email;
+document.getElementById('sb-name').textContent = userName;
+document.getElementById('sb-avatar').textContent = avatarInitial(userName);
+
+// ── Date ────────────────────────────────────────────────────────────────
+document.getElementById('today-date').textContent =
+  new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
+
+// ── Load stats ──────────────────────────────────────────────────────────
+async function loadStats() {
+  const [studSnap, progSnap, pendSnap] = await Promise.all([
+    getDocs(collection(db,'students')),
+    getDocs(collection(db,'progress_reports')),
+    getDocs(query(collection(db,'enrollments'), where('status','==','pending'))),
+  ]);
+
+  const students = studSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+  const active   = students.filter(s => s.is_active);
+
+  document.getElementById('st-students').textContent = students.length;
+  document.getElementById('st-active').textContent   = `${active.length} aktif`;
+  document.getElementById('st-sessions').textContent = progSnap.size;
+  document.getElementById('st-pending').textContent  = pendSnap.size;
+
+  // Program breakdown
+  const progCount = {};
+  active.forEach(s => (s.subjects||[]).forEach(subj => { progCount[subj]=(progCount[subj]||0)+1; }));
+  document.getElementById('st-programs').textContent = Object.keys(progCount).length;
+
+  const pbEl = document.getElementById('program-breakdown');
+  if (Object.keys(progCount).length === 0) {
+    pbEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>Belum ada data murid</p></div>';
+  } else {
+    pbEl.innerHTML = Object.entries(progCount).map(([subj, cnt]) =>
+      `<div class="card card-sm" style="text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">${SUBJECT_ICONS[subj]||'📚'}</div>
+        <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--sage-900)">${cnt}</div>
+        <div style="font-size:12px;color:var(--sage-500);margin-top:4px">${subj}</div>
+      </div>`
+    ).join('');
+  }
+
+  return students;
+}
+
+// ── Recent progress ─────────────────────────────────────────────────────
+async function loadRecentProgress() {
+  const snap = await getDocs(query(collection(db,'progress_reports'), orderBy('session_date','desc'), limit(5)));
+  const el   = document.getElementById('recent-progress');
+  if (snap.empty) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>'; return; }
+
+  el.innerHTML = snap.docs.map(d => {
+    const r = d.data();
+    const sc = scoreClass(r.score);
+    return `<div class="report-card">
+      <div class="report-score ${sc}">${r.score !== undefined && r.score !== null ? r.score : (SUBJECT_ICONS[r.subject]||'📚')}</div>
+      <div class="report-body">
+        <div class="report-title">${r.title}</div>
+        <div class="report-meta">${r.student_name||'?'} · ${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Pending enrollments ─────────────────────────────────────────────────
+async function loadPending() {
+  const snap = await getDocs(query(collection(db,'enrollments'), where('status','==','pending'), orderBy('created_at','desc'), limit(4)));
+  const el   = document.getElementById('pending-enrollments');
+  if (snap.empty) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Tidak ada pending</p></div>'; return; }
+
+  el.innerHTML = snap.docs.map(d => {
+    const e = d.data();
+    return `<div class="report-card">
+      <div style="font-size:26px">👶</div>
+      <div class="report-body">
+        <div class="report-title">${e.student_name}</div>
+        <div class="report-meta">${e.student_grade}${e.student_age?' · '+e.student_age:''} · ${e.parent_phone}</div>
+        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
+          ${(e.subjects||[]).map(s=>`<span class="badge badge-sage" style="font-size:11px">${SUBJECT_ICONS[s]||'📚'} ${s}</span>`).join('')}
+        </div>
+      </div>
+      <a href="enrollment.html" class="badge badge-amber" style="flex-shrink:0;text-decoration:none">Review</a>
+    </div>`;
+  }).join('');
+}
+
+// ── Logout ──────────────────────────────────────────────────────────────
+window.doLogout = async function() {
+  await signOut(auth);
+  window.location.href = 'login.html';
+};
+
+// ── Sidebar ─────────────────────────────────────────────────────────────
+window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
+window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
+
+// ── Init ────────────────────────────────────────────────────────────────
+loadStats();
+loadRecentProgress();
+loadPending();
+</script>
+</body>
+</html>

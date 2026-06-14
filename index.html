@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Les Anisa — Bimbingan Calistung TK, PAUD & SD</title>
+  <meta name="description" content="Bimbingan belajar calistung (membaca, menulis, berhitung) untuk anak TK, PAUD, dan SD. Dipantau orang tua secara real-time." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* ── Navbar ── */
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; transition: all .3s; }
+    .nav.scrolled { background: rgba(255,255,255,.97); backdrop-filter: blur(8px); box-shadow: 0 1px 12px rgba(0,0,0,.08); }
+    .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-icon { width: 36px; height: 36px; background: var(--sage-600); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .nav-logo-text { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--sage-900); }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { text-decoration: none; font-size: 14px; font-weight: 500; color: var(--sage-700); transition: color .2s; }
+    .nav-links a:hover { color: var(--sage-900); }
+    .nav-ctas { display: flex; align-items: center; gap: 10px; }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; font-size: 22px; color: var(--sage-700); }
+    .nav-mobile { display: none; position: fixed; top: 64px; left: 0; right: 0; background: white; border-bottom: 1px solid var(--sage-100); padding: 16px; z-index: 99; }
+    .nav-mobile.open { display: block; }
+    .nav-mobile a { display: block; padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--sage-700); text-decoration: none; border-radius: var(--radius-md); }
+    .nav-mobile a:hover { background: var(--sage-50); }
+    @media(max-width:768px){ .nav-links,.nav-ctas { display: none; } .nav-hamburger { display: block; } }
+
+    /* ── Hero ── */
+    .hero { min-height: 100vh; display: flex; align-items: center; background: linear-gradient(135deg, var(--cream-100) 0%, var(--cream-50) 50%, var(--sage-50) 100%); padding-top: 64px; overflow: hidden; position: relative; }
+    .hero-bg-dots { position: absolute; inset: 0; opacity: .03; background-image: radial-gradient(var(--sage-900) 1px, transparent 1px); background-size: 28px 28px; pointer-events: none; }
+    .hero-blob1 { position: absolute; top: -100px; right: -100px; width: 400px; height: 400px; background: radial-gradient(var(--sage-200), transparent 70%); pointer-events: none; }
+    .hero-blob2 { position: absolute; bottom: -60px; left: -80px; width: 320px; height: 320px; background: radial-gradient(var(--cream-300), transparent 70%); pointer-events: none; }
+    .hero-float { position: absolute; font-family: var(--font-display); font-weight: 700; color: var(--sage-200); font-size: 42px; user-select: none; animation: float 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+    .hero-inner { max-width: 1100px; margin: 0 auto; padding: 60px 24px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; position: relative; z-index: 1; }
+    @media(max-width:900px){ .hero-inner { grid-template-columns: 1fr; gap: 40px; } .hero-card-wrap { display: none; } }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--sage-100); color: var(--sage-700); padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
+    .hero h1 { font-size: clamp(32px,5vw,54px); color: var(--sage-900); margin-bottom: 18px; line-height: 1.15; }
+    .hero h1 em { color: var(--sage-600); }
+    .hero-sub { font-size: 16px; color: var(--sage-600); line-height: 1.7; max-width: 460px; margin-bottom: 28px; }
+    .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 40px; }
+    @media(max-width:600px){ .hero-stats { grid-template-columns: repeat(2,1fr); } }
+    .hero-stat { background: rgba(255,255,255,.7); backdrop-filter: blur(6px); border: 1px solid var(--sage-100); border-radius: var(--radius-xl); padding: 14px; text-align: center; }
+    .hero-stat-val { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--sage-900); }
+    .hero-stat-lbl { font-size: 11px; color: var(--sage-500); margin-top: 2px; }
+    /* Hero card */
+    .hero-card { background: white; border-radius: 28px; padding: 28px; box-shadow: 0 20px 60px rgba(38,57,38,.15); border: 1px solid var(--sage-100); position: relative; }
+    .hero-card-badge { position: absolute; bottom: -16px; left: 20px; background: white; border: 1px solid var(--sage-100); border-radius: 16px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-md); }
+    .hero-card-name { font-weight: 700; font-size: 14px; color: var(--sage-900); }
+    .hero-card-grade { font-size: 11px; color: var(--sage-500); }
+    .hero-progress-item { margin-bottom: 14px; }
+    .hero-progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .hero-progress-label span { color: var(--sage-600); font-weight: 500; }
+    .hero-progress-label small { color: var(--sage-400); }
+    .hero-latest { border-top: 1px solid var(--sage-100); padding-top: 14px; margin-top: 4px; }
+    .hero-latest-item { display: flex; align-items: center; gap: 10px; background: var(--sage-50); border-radius: 12px; padding: 10px 12px; }
+    .hero-latest-icon { width: 34px; height: 34px; background: var(--cream-200); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+    /* ── Sections ── */
+    section { padding: 80px 24px; }
+    .section-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--sage-100); color: var(--sage-700); padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+    .section-title { font-size: clamp(26px,4vw,40px); color: var(--sage-900); margin-bottom: 14px; line-height: 1.2; }
+    .section-title em { color: var(--sage-600); }
+    .section-sub { font-size: 15px; color: var(--sage-500); max-width: 520px; line-height: 1.7; }
+
+    /* ── About ── */
+    #tentang { background: white; }
+    .about-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    @media(max-width:860px){ .about-inner { grid-template-columns: 1fr; } }
+    .about-visual { background: linear-gradient(135deg, var(--sage-100), var(--cream-100)); border-radius: 28px; padding: 32px; }
+    .about-pillars { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+    .about-pillar { background: white; border-radius: 16px; padding: 16px 10px; text-align: center; box-shadow: var(--shadow-sm); }
+    .about-pillar-icon { font-size: 32px; margin-bottom: 8px; }
+    .about-pillar-name { font-size: 12px; font-weight: 700; color: var(--sage-900); }
+    .about-pillar-desc { font-size: 10px; color: var(--sage-500); margin-top: 4px; line-height: 1.4; }
+    .about-ages { background: white; border-radius: 16px; padding: 14px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .about-age-tag { background: var(--sage-100); color: var(--sage-700); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
+    .benefit-list { list-style: none; margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media(max-width:500px){ .benefit-list { grid-template-columns: 1fr; } }
+    .benefit-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--sage-700); }
+    .benefit-item::before { content: '✓'; color: var(--sage-500); font-weight: 700; margin-top: 1px; flex-shrink: 0; }
+
+    /* ── Programs ── */
+    #program { background: var(--cream-50); }
+    .programs-wrap { max-width: 1100px; margin: 0 auto; }
+    .programs-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 40px; }
+    @media(max-width:860px){ .programs-grid { grid-template-columns: 1fr; } }
+    .prog-card { background: white; border-radius: var(--radius-2xl); border: 1px solid var(--sage-100); overflow: hidden; transition: transform .25s, box-shadow .25s; }
+    .prog-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .prog-card-head { padding: 24px; }
+    .prog-card-icon { font-size: 40px; margin-bottom: 12px; }
+    .prog-card-head h3 { font-family: var(--font-display); font-size: 22px; color: white; }
+    .prog-card-head p { font-size: 13px; color: rgba(255,255,255,.8); margin-top: 4px; }
+    .prog-card-age { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,.2); color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; margin-top: 10px; }
+    .prog-card-body { padding: 20px; }
+    .prog-card-desc { font-size: 13px; color: var(--sage-600); line-height: 1.6; margin-bottom: 14px; }
+    .prog-features { list-style: none; }
+    .prog-features li { font-size: 13px; color: var(--sage-700); padding: 5px 0; display: flex; align-items: center; gap: 8px; }
+    .prog-features li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .prog-cta { display: block; text-align: center; margin-top: 16px; padding: 10px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; text-decoration: none; transition: opacity .2s; }
+    .prog-cta:hover { opacity: .8; }
+    .prog-bundle { margin-top: 24px; background: var(--sage-900); border-radius: var(--radius-2xl); padding: 28px; text-align: center; color: white; }
+    .prog-bundle h3 { font-family: var(--font-display); font-size: 22px; margin-bottom: 8px; }
+    .prog-bundle p { font-size: 14px; color: var(--sage-300); margin-bottom: 20px; }
+
+    /* ── Teacher ── */
+    #pengajar { background: white; }
+    .teacher-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    @media(max-width:860px){ .teacher-inner { grid-template-columns: 1fr; } }
+    .teacher-photo-wrap { position: relative; max-width: 380px; }
+    .teacher-photo-frame { background: linear-gradient(135deg, var(--sage-100), var(--cream-100)); border-radius: 28px; aspect-ratio: 4/5; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+    .teacher-photo-frame img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+    .teacher-photo-no-img { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--sage-400); font-size: 14px; }
+    .teacher-photo-info { position: absolute; bottom: 20px; left: 20px; right: 20px; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-radius: 16px; padding: 16px; }
+    .teacher-photo-badge { position: absolute; top: 20px; right: -12px; background: white; border: 1px solid var(--sage-100); border-radius: 14px; padding: 10px 14px; box-shadow: var(--shadow-md); }
+    .teacher-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0; }
+    .teacher-stat { display: flex; align-items: center; gap: 12px; background: var(--sage-50); border-radius: var(--radius-lg); padding: 14px; }
+    .teacher-stat-emoji { font-size: 24px; }
+    .teacher-stat-label { font-size: 13px; font-weight: 700; color: var(--sage-900); }
+    .teacher-stat-sub { font-size: 11px; color: var(--sage-500); }
+    .stars { color: #fbbf24; letter-spacing: 1px; }
+
+    /* ── Testimonials ── */
+    #testimoni { background: var(--sage-50); }
+    .testi-wrap { max-width: 1100px; margin: 0 auto; }
+    .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 40px; }
+    @media(max-width:860px){ .testi-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:560px){ .testi-grid { grid-template-columns: 1fr; } }
+    .testi-card { background: white; border-radius: var(--radius-2xl); border: 1px solid var(--sage-100); padding: 22px; transition: box-shadow .2s; }
+    .testi-card:hover { box-shadow: var(--shadow-md); }
+    .testi-stars { color: #fbbf24; font-size: 14px; margin-bottom: 12px; }
+    .testi-text { font-size: 14px; color: var(--sage-700); line-height: 1.6; font-style: italic; margin-bottom: 18px; }
+    .testi-author { display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid var(--sage-100); }
+    .testi-avatar { font-size: 24px; width: 40px; height: 40px; background: var(--sage-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .testi-name { font-size: 13px; font-weight: 600; color: var(--sage-900); }
+    .testi-role { font-size: 11px; color: var(--sage-400); }
+
+    /* ── Enrollment form ── */
+    #daftar { background: var(--cream-50); }
+    .enroll-wrap { max-width: 760px; margin: 0 auto; }
+    .enroll-card { background: white; border-radius: var(--radius-2xl); border: 1px solid var(--sage-100); padding: 40px; }
+    @media(max-width:600px){ .enroll-card { padding: 24px 20px; } }
+    .form-section-title { font-size: 14px; font-weight: 700; color: var(--sage-900); padding-bottom: 12px; border-bottom: 1px solid var(--sage-100); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+    .enroll-success { text-align: center; padding: 40px 20px; display: none; }
+    .enroll-success h3 { font-family: var(--font-display); font-size: 28px; color: var(--sage-900); margin: 16px 0 8px; }
+
+    /* ── Footer ── */
+    footer { background: var(--sage-900); color: white; padding: 56px 24px 28px; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+    @media(max-width:700px){ .footer-grid { grid-template-columns: 1fr; gap: 28px; } }
+    .footer-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .footer-logo-icon { width: 34px; height: 34px; background: var(--sage-500); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .footer-logo-text { font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+    .footer-desc { font-size: 13px; color: var(--sage-300); line-height: 1.7; margin-bottom: 18px; max-width: 300px; }
+    .footer-socials { display: flex; gap: 8px; }
+    .footer-social { width: 36px; height: 36px; background: var(--sage-700); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; text-decoration: none; transition: background .2s; }
+    .footer-social:hover { background: var(--sage-600); }
+    .footer-col h4 { font-size: 14px; font-weight: 600; color: var(--sage-200); margin-bottom: 14px; }
+    .footer-col a, .footer-col p { display: block; font-size: 13px; color: var(--sage-400); text-decoration: none; margin-bottom: 8px; line-height: 1.5; transition: color .2s; }
+    .footer-col a:hover { color: white; }
+    .footer-bottom { border-top: 1px solid var(--sage-700); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .footer-bottom p { font-size: 12px; color: var(--sage-500); }
+    .footer-bottom a { font-size: 12px; color: var(--sage-400); text-decoration: none; }
+    .footer-bottom a:hover { color: white; }
+
+    /* ── Scroll animations ── */
+    .fade-up { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ── -->
+<nav class="nav" id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">📚</div>
+      <span class="nav-logo-text" id="nav-site-name">Les Anisa</span>
+    </a>
+    <div class="nav-links">
+      <a href="#tentang">Tentang</a>
+      <a href="#program">Program</a>
+      <a href="#pengajar">Pengajar</a>
+      <a href="#testimoni">Testimoni</a>
+      <a href="#daftar">Daftar</a>
+    </div>
+    <div class="nav-ctas">
+      <a href="admin/login.html" class="btn btn-secondary btn-sm">Masuk</a>
+      <a href="#daftar" class="btn btn-primary btn-sm">Daftar Sekarang</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu">☰</button>
+  </div>
+  <div class="nav-mobile" id="nav-mobile">
+    <a href="#tentang"  onclick="closeMobile()">Tentang</a>
+    <a href="#program"  onclick="closeMobile()">Program</a>
+    <a href="#pengajar" onclick="closeMobile()">Pengajar</a>
+    <a href="#testimoni" onclick="closeMobile()">Testimoni</a>
+    <a href="#daftar"   onclick="closeMobile()">Daftar</a>
+    <div style="display:flex;gap:8px;padding:12px 16px;">
+      <a href="admin/login.html" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center">Masuk</a>
+      <a href="#daftar" onclick="closeMobile()" class="btn btn-primary btn-sm" style="flex:1;justify-content:center">Daftar</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero" id="hero">
+  <div class="hero-bg-dots"></div>
+  <div class="hero-blob1"></div>
+  <div class="hero-blob2"></div>
+  <!-- Floating ABC -->
+  <div class="hero-float" style="top:12%;left:3%;animation-delay:0s">A</div>
+  <div class="hero-float" style="top:22%;right:5%;animation-delay:.8s;font-size:34px">B</div>
+  <div class="hero-float" style="bottom:25%;left:6%;animation-delay:1.5s;font-size:36px">C</div>
+  <div class="hero-float" style="top:55%;right:8%;animation-delay:.4s;font-size:30px">1</div>
+  <div class="hero-float" style="bottom:30%;right:12%;animation-delay:1.2s;font-size:38px">2</div>
+  <div class="hero-float" style="top:70%;left:10%;animation-delay:.6s;font-size:28px">3</div>
+
+  <div class="hero-inner">
+    <div class="hero-text fade-up">
+      <div class="hero-badge" id="hero-badge">✏️ Bimbingan Calistung Terpercaya</div>
+      <h1 id="hero-title">Fondasi Belajar yang Kuat untuk <em>Si Kecil</em></h1>
+      <p class="hero-sub" id="hero-sub">Program calistung (membaca, menulis, berhitung) yang menyenangkan untuk anak TK, PAUD & SD. Dipantau orang tua secara real-time.</p>
+      <div class="hero-btns">
+        <a href="#daftar" class="btn btn-primary" id="hero-cta1">Daftar Sekarang →</a>
+        <a href="#program" class="btn btn-secondary" id="hero-cta2">Lihat Program</a>
+      </div>
+      <div class="hero-stats" id="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-val">100+</div><div class="hero-stat-lbl">Anak Dibimbing</div></div>
+        <div class="hero-stat"><div class="hero-stat-val">5+</div><div class="hero-stat-lbl">Tahun Pengalaman</div></div>
+        <div class="hero-stat"><div class="hero-stat-val">98%</div><div class="hero-stat-lbl">Orang Tua Puas</div></div>
+        <div class="hero-stat"><div class="hero-stat-val">4.9</div><div class="hero-stat-lbl">Rating</div></div>
+      </div>
+    </div>
+
+    <!-- Mock dashboard card -->
+    <div class="hero-card-wrap fade-up" style="animation-delay:.15s">
+      <div class="hero-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+          <div>
+            <p style="font-size:11px;color:var(--sage-400);font-weight:500">Perkembangan Calistung</p>
+            <p style="font-weight:700;color:var(--sage-900);font-size:16px">Bintang Pratama</p>
+            <p style="font-size:11px;color:var(--sage-400)">TK B · 5 tahun</p>
+          </div>
+          <div style="font-size:36px">⭐</div>
+        </div>
+        <div class="hero-progress-item">
+          <div class="hero-progress-label"><span>📖 Membaca</span><small>Suku kata</small></div>
+          <div class="progress-bar"><div class="progress-fill progress-sage" style="width:80%"></div></div>
+        </div>
+        <div class="hero-progress-item">
+          <div class="hero-progress-label"><span>✏️ Menulis</span><small>Huruf kapital</small></div>
+          <div class="progress-bar"><div class="progress-fill progress-terra" style="width:65%"></div></div>
+        </div>
+        <div class="hero-progress-item" style="margin-bottom:0">
+          <div class="hero-progress-label"><span>🔢 Berhitung</span><small>Penjumlahan</small></div>
+          <div class="progress-bar"><div class="progress-fill progress-amber" style="width:90%"></div></div>
+        </div>
+        <div class="hero-latest">
+          <p style="font-size:11px;color:var(--sage-400);font-weight:600;margin-bottom:8px">Sesi Terbaru</p>
+          <div class="hero-latest-item">
+            <div class="hero-latest-icon">📖</div>
+            <div>
+              <p style="font-size:12px;font-weight:600;color:var(--sage-900)">Latihan Suku Kata Ba-Bi-Bu</p>
+              <p style="font-size:11px;color:var(--sage-400)">Hari ini · Nilai: 90</p>
+            </div>
+            <span class="badge badge-green" style="margin-left:auto">Bagus!</span>
+          </div>
+        </div>
+        <div class="hero-card-badge">
+          <div style="display:flex;margin-right:4px">
+            <span style="font-size:20px">👧</span><span style="font-size:20px;margin-left:-6px">👦</span><span style="font-size:20px;margin-left:-6px">🧒</span>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:700;color:var(--sage-900)">100+ Anak</p>
+            <p style="font-size:10px;color:var(--sage-400)">TK, PAUD & SD</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── About ── -->
+<section id="tentang">
+  <div class="about-inner">
+    <div class="about-visual fade-up">
+      <div class="about-pillars">
+        <div class="about-pillar"><div class="about-pillar-icon">📖</div><div class="about-pillar-name">Membaca</div><div class="about-pillar-desc">Huruf → Kata → Kalimat</div></div>
+        <div class="about-pillar"><div class="about-pillar-icon">✏️</div><div class="about-pillar-name">Menulis</div><div class="about-pillar-desc">Coretan → Tulisan Rapi</div></div>
+        <div class="about-pillar"><div class="about-pillar-icon">🔢</div><div class="about-pillar-name">Berhitung</div><div class="about-pillar-desc">Angka → Operasi Hitung</div></div>
+      </div>
+      <div class="about-ages">
+        <span class="about-age-tag">PAUD / Playgroup</span>
+        <span class="about-age-tag">TK A & TK B</span>
+        <span class="about-age-tag">SD Kelas 1–6</span>
+      </div>
+    </div>
+    <div class="fade-up" style="animation-delay:.1s">
+      <div class="section-badge">ℹ️ Tentang Kami</div>
+      <h2 class="section-title" id="about-title">Belajar Calistung yang<br><em>Menyenangkan & Terstruktur</em></h2>
+      <p id="about-desc1" style="color:var(--sage-600);line-height:1.7;margin-bottom:12px">Les Anisa mengkhususkan diri pada program Calistung untuk anak usia dini hingga SD. Kami percaya fondasi belajar yang kuat dimulai sejak dini dengan metode yang tepat dan suasana yang menyenangkan.</p>
+      <p id="about-desc2" style="color:var(--sage-600);line-height:1.7">Setiap anak belajar dengan kecepatan berbeda. Pengajar kami sabar, berpengalaman, dan menggunakan pendekatan bermain sambil belajar agar si kecil tidak bosan.</p>
+      <ul class="benefit-list" id="about-benefits">
+        <li>Metode bermain sambil belajar</li>
+        <li>Pengajar sabar & berpengalaman</li>
+        <li>Materi sesuai usia & kemampuan</li>
+        <li>Laporan perkembangan berkala</li>
+        <li>Kelas kecil, perhatian personal</li>
+        <li>Jadwal fleksibel (weekday & weekend)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── Programs ── -->
+<section id="program">
+  <div class="programs-wrap">
+    <div class="text-center fade-up">
+      <div class="section-badge">🎯 Program Calistung</div>
+      <h2 class="section-title">Tiga Pilar Utama<br><em>Pembelajaran Anak</em></h2>
+      <p class="section-sub" style="margin:0 auto">Program terstruktur dan bertahap sesuai kemampuan masing-masing anak.</p>
+    </div>
+    <div class="programs-grid" id="programs-grid">
+      <!-- Rendered by JS -->
+    </div>
+    <div class="prog-bundle fade-up">
+      <h3>🌟 Paket Calistung Lengkap</h3>
+      <p>Ambil ketiga program sekaligus dengan harga lebih hemat. Cocok untuk anak yang baru mulai dari nol.</p>
+      <a href="#daftar" class="btn btn-white">Tanya Paket Lengkap →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Teacher ── -->
+<section id="pengajar">
+  <div class="teacher-inner">
+    <div class="fade-up">
+      <div class="section-badge">👩‍🏫 Pengajar Kami</div>
+      <h2 class="section-title">Belajar Bersama Pengajar<br><em>yang Sabar & Berpengalaman</em></h2>
+      <p id="teacher-bio" style="color:var(--sage-600);line-height:1.7;margin-bottom:20px">Dengan latar belakang S1 Pendidikan dan pengalaman lebih dari 5 tahun mendampingi anak usia dini, Kak Anisa dikenal sabar, kreatif, dan membuat anak belajar dengan senang hati.</p>
+      <div class="teacher-stats-grid" id="teacher-stats-grid">
+        <div class="teacher-stat"><div class="teacher-stat-emoji">🎓</div><div><div class="teacher-stat-label">S1 Pendidikan</div><div class="teacher-stat-sub">Lulusan Terbaik</div></div></div>
+        <div class="teacher-stat"><div class="teacher-stat-emoji">⭐</div><div><div class="teacher-stat-label">5+ Tahun</div><div class="teacher-stat-sub">Mengajar Calistung</div></div></div>
+        <div class="teacher-stat"><div class="teacher-stat-emoji">👧</div><div><div class="teacher-stat-label">100+ Anak</div><div class="teacher-stat-sub">Berhasil Dibimbing</div></div></div>
+        <div class="teacher-stat"><div class="teacher-stat-emoji">📈</div><div><div class="teacher-stat-label">Kemajuan Nyata</div><div class="teacher-stat-sub">Dalam 1-3 Bulan</div></div></div>
+      </div>
+      <a href="https://anisa.iranza.com" target="_blank" rel="noopener" class="btn btn-primary">Lihat Portfolio Kak Anisa →</a>
+    </div>
+    <div class="fade-up" style="animation-delay:.15s">
+      <div class="teacher-photo-wrap">
+        <div class="teacher-photo-frame">
+          <div id="teacher-photo-container">
+            <div class="teacher-photo-no-img"><div style="font-size:72px">👩‍🏫</div><p>Foto Kak Anisa</p></div>
+          </div>
+        </div>
+        <div class="teacher-photo-info">
+          <p id="teacher-name" style="font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--sage-900)">Anisa Fitriani, S.Pd</p>
+          <p id="teacher-title-el" style="font-size:13px;color:var(--sage-500)">Pendiri & Pengajar Utama</p>
+          <div class="stars mt-1">★★★★★ <span style="font-size:12px;color:var(--sage-400)">4.9</span></div>
+        </div>
+        <div class="teacher-photo-badge">
+          <p style="font-size:11px;color:var(--sage-400)">Spesialisasi</p>
+          <p id="teacher-speciality" style="font-weight:700;font-size:13px;color:var(--sage-800)">Calistung Anak Usia Dini</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Testimonials ── -->
+<section id="testimoni">
+  <div class="testi-wrap">
+    <div class="text-center fade-up">
+      <div class="section-badge">💬 Testimoni</div>
+      <h2 class="section-title">Kata Orang Tua tentang<br><em>Perkembangan Si Kecil</em></h2>
+    </div>
+    <div class="testi-grid" id="testi-grid"><!-- rendered by JS --></div>
+  </div>
+</section>
+
+<!-- ── Enrollment ── -->
+<section id="daftar">
+  <div class="enroll-wrap">
+    <div class="text-center fade-up mb-8">
+      <div class="section-badge">📝 Formulir Pendaftaran</div>
+      <h2 class="section-title">Daftarkan Si Kecil,<br><em>Mulai Belajar Sekarang</em></h2>
+      <p class="section-sub" style="margin:0 auto">Konsultasi pertama <strong>GRATIS</strong>. Kami akan menghubungi Anda dalam 1×24 jam.</p>
+    </div>
+    <div class="enroll-card fade-up" style="animation-delay:.1s">
+      <!-- Success state -->
+      <div class="enroll-success" id="enroll-success">
+        <div style="font-size:64px">🎉</div>
+        <h3>Pendaftaran Terkirim!</h3>
+        <p style="color:var(--sage-500);margin-bottom:24px">Tim kami akan menghubungi Anda dalam 1×24 jam.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button onclick="resetForm()" class="btn btn-secondary">Daftar Anak Lain</button>
+          <a id="wa-followup" href="#" target="_blank" class="btn btn-primary" style="background:#16a34a">💬 Chat WhatsApp</a>
+        </div>
+      </div>
+      <!-- Form -->
+      <form id="enroll-form" onsubmit="submitEnrollment(event)">
+        <div class="form-section-title">👨‍👩‍👦 Data Orang Tua / Wali</div>
+        <div class="form-grid-2">
+          <div class="form-group"><label class="form-label">Nama Lengkap *</label><input type="text" class="form-input" id="f-parent-name" placeholder="Nama orang tua" required></div>
+          <div class="form-group"><label class="form-label">No. WhatsApp *</label><input type="tel" class="form-input" id="f-parent-phone" placeholder="08xxxxxxxxxx" required></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-input" id="f-parent-email" placeholder="email@contoh.com" required></div>
+
+        <div class="form-section-title" style="margin-top:24px">👧 Data Anak</div>
+        <div class="form-grid-2">
+          <div class="form-group"><label class="form-label">Nama Anak *</label><input type="text" class="form-input" id="f-student-name" placeholder="Nama lengkap anak" required></div>
+          <div class="form-group"><label class="form-label">Usia *</label>
+            <select class="form-select" id="f-age" required>
+              <option value="">Pilih usia...</option>
+              <option>3 tahun</option><option>4 tahun</option><option>5 tahun</option><option>6 tahun</option>
+              <option>7 tahun</option><option>8 tahun</option><option>9 tahun</option><option>10 tahun</option>
+              <option>11 tahun</option><option>12 tahun</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group"><label class="form-label">Jenjang Pendidikan *</label>
+            <select class="form-select" id="f-grade" required>
+              <option value="">Pilih jenjang...</option>
+              <option>PAUD / Playgroup</option><option>TK A (4-5 tahun)</option><option>TK B (5-6 tahun)</option>
+              <option>SD Kelas 1</option><option>SD Kelas 2</option><option>SD Kelas 3</option>
+              <option>SD Kelas 4</option><option>SD Kelas 5</option><option>SD Kelas 6</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Nama Sekolah</label><input type="text" class="form-input" id="f-school" placeholder="TK / SD (opsional)"></div>
+        </div>
+
+        <div class="form-group" style="margin-top:8px">
+          <label class="form-label">🎯 Program yang Diinginkan *</label>
+          <div class="subject-pills" id="enroll-subjects">
+            <div class="subject-pill" data-value="Membaca"><div class="pill-icon">📖</div><div class="pill-label">Membaca</div></div>
+            <div class="subject-pill" data-value="Menulis"><div class="pill-icon">✏️</div><div class="pill-label">Menulis</div></div>
+            <div class="subject-pill" data-value="Berhitung"><div class="pill-icon">🔢</div><div class="pill-label">Berhitung</div></div>
+            <div class="subject-pill" data-value="Calistung (Lengkap)"><div class="pill-icon">🌟</div><div class="pill-label">Paket Lengkap</div></div>
+          </div>
+          <p class="form-error hidden" id="subjects-err">Pilih minimal 1 program</p>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Kondisi Saat Ini / Pesan</label>
+          <textarea class="form-textarea" id="f-message" placeholder="cth: Anak belum mengenal huruf sama sekali, ingin mulai dari dasar..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="enroll-submit" style="padding:14px;font-size:15px;margin-top:8px">
+          <span id="enroll-btn-text">📝 Kirim Pendaftaran — Konsultasi Gratis!</span>
+        </button>
+        <p style="text-align:center;font-size:12px;color:var(--sage-400);margin-top:10px">Tidak ada biaya pendaftaran. Data Anda aman dan tidak akan disalahgunakan.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">
+          <div class="footer-logo-icon">📚</div>
+          <span class="footer-logo-text" id="footer-site-name">Les Anisa Calistung</span>
+        </div>
+        <p class="footer-desc" id="footer-tagline">Bimbingan calistung yang mengutamakan perkembangan holistik anak usia dini hingga SD.</p>
+        <div class="footer-socials">
+          <a class="footer-social" id="footer-wa" href="#" title="WhatsApp">💬</a>
+          <a class="footer-social" id="footer-ig" href="#" title="Instagram">📸</a>
+          <a class="footer-social" id="footer-email" href="#" title="Email">✉️</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigasi</h4>
+        <a href="#tentang">Tentang Kami</a>
+        <a href="#program">Program</a>
+        <a href="#pengajar">Pengajar</a>
+        <a href="#testimoni">Testimoni</a>
+        <a href="#daftar">Daftar Sekarang</a>
+      </div>
+      <div class="footer-col">
+        <h4>Kontak</h4>
+        <p id="footer-wa-num">📱 08xx-xxxx-xxxx</p>
+        <p id="footer-email-addr">✉️ info@lesanisa.com</p>
+        <p id="footer-address">📍 Lokasi menyesuaikan & Online via Zoom</p>
+        <p id="footer-hours" style="margin-top:8px;white-space:pre-line">🕐 Senin-Sabtu: 07.00-20.00</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© <span id="footer-year"></span> <span id="footer-copy-name">Les Anisa</span>. All rights reserved.</p>
+      <div style="display:flex;gap:16px">
+        <a href="https://anisa.iranza.com" target="_blank">Portfolio Kak Anisa →</a>
+        <a href="admin/login.html">Login Dashboard →</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { db, collection, getDocs, addDoc, serverTimestamp }
+  from './assets/js/firebase-config.js';
+import { toast, formatDate } from './assets/js/utils.js';
+
+// ── Load site settings from Firestore ──────────────────────────────────
+async function loadSettings() {
+  try {
+    const snap = await getDocs(collection(db, 'site_settings'));
+    const s = {};
+    snap.forEach(d => { s[d.id] = d.data().value; });
+    applySettings(s);
+  } catch(e) { /* use defaults */ }
+}
+
+function applySettings(s) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+  const setHref = (id, val) => { const el = document.getElementById(id); if (el && val) el.href = val; };
+
+  set('nav-site-name',      s.site_name);
+  set('hero-badge',         s.hero_badge);
+  set('hero-title',         null); // handle italic below
+  set('hero-sub',           s.hero_subtitle);
+  set('footer-site-name',   s.site_name);
+  set('footer-tagline',     s.site_tagline);
+  set('footer-copy-name',   s.site_name?.replace(' Calistung',''));
+  set('teacher-bio',        s.teacher_bio);
+  set('teacher-name',       s.teacher_name);
+  set('teacher-title-el',   s.teacher_title);
+  set('teacher-speciality', s.teacher_speciality);
+  set('about-desc1',        s.about_desc1);
+  set('about-desc2',        s.about_desc2);
+  set('footer-wa-num',      s.whatsapp_number ? `📱 +${s.whatsapp_number}` : null);
+  set('footer-email-addr',  s.email_contact   ? `✉️ ${s.email_contact}` : null);
+  set('footer-address',     s.address         ? `📍 ${s.address}` : null);
+  set('footer-hours',       s.operational_hours ? `🕐 ${s.operational_hours}` : null);
+
+  if (s.hero_title) {
+    const words = s.hero_title.split(' ');
+    const last2 = words.splice(-2).join(' ');
+    document.getElementById('hero-title').innerHTML = words.join(' ') + ` <em>${last2}</em>`;
+  }
+  if (s.whatsapp_number) {
+    setHref('footer-wa', `https://wa.me/${s.whatsapp_number}`);
+    document.getElementById('footer-wa-num').innerHTML = `📱 +${s.whatsapp_number}`;
+  }
+  if (s.instagram_url)  setHref('footer-ig', s.instagram_url);
+  if (s.email_contact)  setHref('footer-email', `mailto:${s.email_contact}`);
+
+  if (s.teacher_photo_url) {
+    document.getElementById('teacher-photo-container').innerHTML =
+      `<img src="${s.teacher_photo_url}" alt="${s.teacher_name||'Kak Anisa'}" style="width:100%;height:100%;object-fit:cover;object-position:top">`;
+  }
+  if (s.about_benefits) {
+    const benefits = typeof s.about_benefits === 'string' ? JSON.parse(s.about_benefits) : s.about_benefits;
+    document.getElementById('about-benefits').innerHTML = benefits.map(b => `<li>${b}</li>`).join('');
+  }
+  if (s.hero_cta_primary)  document.getElementById('hero-cta1').textContent = s.hero_cta_primary + ' →';
+  if (s.hero_cta_secondary) document.getElementById('hero-cta2').textContent = s.hero_cta_secondary;
+  if (s.stats) {
+    const stats = typeof s.stats === 'string' ? JSON.parse(s.stats) : s.stats;
+    document.getElementById('hero-stats').innerHTML = stats.map(st =>
+      `<div class="hero-stat"><div class="hero-stat-val">${st.value}</div><div class="hero-stat-lbl">${st.label}</div></div>`
+    ).join('');
+  }
+  if (s.teacher_stats) {
+    const ts = typeof s.teacher_stats === 'string' ? JSON.parse(s.teacher_stats) : s.teacher_stats;
+    document.getElementById('teacher-stats-grid').innerHTML = ts.map(t =>
+      `<div class="teacher-stat"><div class="teacher-stat-emoji">${t.emoji}</div><div><div class="teacher-stat-label">${t.label}</div><div class="teacher-stat-sub">${t.sub}</div></div></div>`
+    ).join('');
+  }
+  if (s.about_title) {
+    const parts = s.about_title.split('&');
+    document.getElementById('about-title').innerHTML = parts[0] + '&<br><em>' + (parts[1]||'') + '</em>';
+  }
+}
+
+// ── Render programs ─────────────────────────────────────────────────────
+async function loadPrograms() {
+  let programs;
+  try {
+    const snap = await getDocs(collection(db, 'site_settings'));
+    snap.forEach(d => { if (d.id === 'programs') { programs = d.data().value; } });
+  } catch {}
+  if (!programs) programs = DEFAULT_PROGRAMS;
+  if (typeof programs === 'string') programs = JSON.parse(programs);
+
+  const colorMap = {
+    'bg-sage-600':       { head:'background:var(--sage-600)', dot:'background:var(--sage-600)', cta:'background:var(--sage-50);color:var(--sage-700)' },
+    'bg-terracotta-500': { head:'background:var(--terra-500)', dot:'background:var(--terra-500)', cta:'background:#fde8e2;color:var(--terra-500)' },
+    'bg-amber-500':      { head:'background:var(--amber-500)', dot:'background:var(--amber-500)', cta:'background:#fffbeb;color:var(--amber-500)' },
+  };
+
+  document.getElementById('programs-grid').innerHTML = programs.map((p, i) => {
+    const c = colorMap[p.color] || colorMap['bg-sage-600'];
+    return `<div class="prog-card fade-up" style="animation-delay:${i*.1}s">
+      <div class="prog-card-head" style="${c.head}">
+        <div class="prog-card-icon">${p.icon}</div>
+        <h3>${p.title}</h3>
+        <p>${p.subtitle}</p>
+        <div class="prog-card-age">👶 ${p.age}</div>
+      </div>
+      <div class="prog-card-body">
+        <p class="prog-card-desc">${p.description}</p>
+        <ul class="prog-features">
+          ${p.features.map(f => `<li><span style="width:6px;height:6px;border-radius:50%;${c.dot};display:inline-block;flex-shrink:0"></span>${f}</li>`).join('')}
+        </ul>
+        <a href="#daftar" class="prog-cta" style="${c.cta}">Daftar Program Ini →</a>
+      </div>
+    </div>`;
+  }).join('');
+  observeFadeUps();
+}
+
+// ── Render testimonials ─────────────────────────────────────────────────
+async function loadTestimonials() {
+  let testis;
+  try {
+    const snap = await getDocs(collection(db, 'site_settings'));
+    snap.forEach(d => { if (d.id === 'testimonials') testis = d.data().value; });
+  } catch {}
+  if (!testis) testis = DEFAULT_TESTIS;
+  if (typeof testis === 'string') testis = JSON.parse(testis);
+
+  document.getElementById('testi-grid').innerHTML = testis.map((t, i) =>
+    `<div class="testi-card fade-up" style="animation-delay:${i*.07}s">
+      <div class="testi-stars">${'★'.repeat(t.rating||5)}</div>
+      <p class="testi-text">"${t.text}"</p>
+      <div class="testi-author">
+        <div class="testi-avatar">${t.emoji}</div>
+        <div><div class="testi-name">${t.name}</div><div class="testi-role">${t.role}</div></div>
+      </div>
+    </div>`
+  ).join('');
+  observeFadeUps();
+}
+
+// ── Enrollment submit ───────────────────────────────────────────────────
+window.submitEnrollment = async function(e) {
+  e.preventDefault();
+  const selectedSubjects = [...document.querySelectorAll('#enroll-subjects .subject-pill.active')].map(p => p.dataset.value);
+  if (selectedSubjects.length === 0) {
+    document.getElementById('subjects-err').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('subjects-err').classList.add('hidden');
+
+  const btn = document.getElementById('enroll-submit');
+  const txt = document.getElementById('enroll-btn-text');
+  btn.disabled = true;
+  txt.textContent = '⏳ Mengirim...';
+
+  try {
+    const waNum = document.getElementById('f-parent-phone').value;
+    await addDoc(collection(db, 'enrollments'), {
+      parent_name:    document.getElementById('f-parent-name').value.trim(),
+      parent_phone:   waNum,
+      parent_email:   document.getElementById('f-parent-email').value.trim(),
+      student_name:   document.getElementById('f-student-name').value.trim(),
+      student_age:    document.getElementById('f-age').value,
+      student_grade:  document.getElementById('f-grade').value,
+      student_school: document.getElementById('f-school').value.trim(),
+      subjects:       selectedSubjects,
+      message:        document.getElementById('f-message').value.trim(),
+      status:         'pending',
+      created_at:     serverTimestamp(),
+    });
+
+    // Set WA link
+    const cleanNum = waNum.replace(/[^0-9]/g,'').replace(/^0/,'62');
+    document.getElementById('wa-followup').href = `https://wa.me/${cleanNum}?text=${encodeURIComponent('Halo, saya ingin konfirmasi pendaftaran Les Anisa untuk anak saya.')}`;
+
+    document.getElementById('enroll-form').style.display = 'none';
+    document.getElementById('enroll-success').style.display = 'block';
+  } catch(err) {
+    toast('Gagal mengirim. Coba lagi atau hubungi via WhatsApp.', 'error');
+    btn.disabled = false;
+    txt.textContent = '📝 Kirim Pendaftaran — Konsultasi Gratis!';
+  }
+};
+
+window.resetForm = function() {
+  document.getElementById('enroll-form').style.display = 'block';
+  document.getElementById('enroll-success').style.display = 'none';
+  document.getElementById('enroll-form').reset();
+  document.querySelectorAll('#enroll-subjects .subject-pill').forEach(p => p.classList.remove('active'));
+};
+
+// ── Subject pills ───────────────────────────────────────────────────────
+document.querySelectorAll('#enroll-subjects .subject-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    pill.classList.toggle('active');
+    document.getElementById('subjects-err').classList.add('hidden');
+  });
+});
+
+// ── Navbar scroll ───────────────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 30);
+});
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('nav-mobile').classList.toggle('open');
+});
+window.closeMobile = () => document.getElementById('nav-mobile').classList.remove('open');
+
+// ── Fade-up observer ────────────────────────────────────────────────────
+function observeFadeUps() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-up:not(.visible)').forEach(el => obs.observe(el));
+}
+observeFadeUps();
+
+// ── Footer year ─────────────────────────────────────────────────────────
+document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+// ── Default data ─────────────────────────────────────────────────────────
+const DEFAULT_PROGRAMS = [
+  { icon:'📖', title:'Membaca', subtitle:'Iqra sampai lancar baca', description:'Mengajarkan pengenalan huruf, suku kata, kata, hingga membaca kalimat dengan lancar.', features:['Pengenalan huruf A-Z','Suku kata & kata','Kalimat sederhana','Membaca nyaring'], color:'bg-sage-600', age:'TK - SD Kelas 2' },
+  { icon:'✏️', title:'Menulis', subtitle:'Dari coretan ke tulisan rapi', description:'Melatih motorik halus, cara memegang pensil yang benar, menulis huruf hingga kalimat rapi.', features:['Motorik halus & pegang pensil','Huruf kapital & kecil','Kata & kalimat','Dikte sederhana'], color:'bg-terracotta-500', age:'TK - SD Kelas 3' },
+  { icon:'🔢', title:'Berhitung', subtitle:'Angka jadi menyenangkan', description:'Mengenalkan konsep angka dan operasi hitung dasar dengan cara yang menyenangkan.', features:['Mengenal angka 1–100','Penjumlahan & pengurangan','Perkalian & pembagian','Soal cerita sederhana'], color:'bg-amber-500', age:'TK - SD Kelas 6' },
+];
+const DEFAULT_TESTIS = [
+  { name:'Ibu Rina', role:'Orang tua Nayla (TK B)', text:'Anaknya yang tadinya belum bisa baca sama sekali, sekarang sudah bisa baca kalimat dalam 2 bulan!', emoji:'👩', rating:5 },
+  { name:'Bapak Dimas', role:'Orang tua Raffa (SD Kelas 1)', text:'Dashboard orang tua sangat membantu, saya bisa pantau perkembangan anak tiap hari.', emoji:'👨', rating:5 },
+  { name:'Ibu Sari', role:'Orang tua Aisyah (PAUD)', text:'Kak Anisa tahu cara yang tepat buat anak seusia Aisyah. Belajar sambil bermain!', emoji:'👩‍👧', rating:5 },
+  { name:'Bapak Hendra', role:'Orang tua Bintang (SD Kelas 2)', text:'Si Bintang yang dulu nangis kalau disuruh ngitung, sekarang malah minta soal tambahan!', emoji:'👨‍👦', rating:5 },
+  { name:'Ibu Dewi', role:'Orang tua Zahra (TK A)', text:'Jadwal fleksibel banget, bisa weekend. Sangat cocok buat kami yang sibuk kerja.', emoji:'👩‍💼', rating:5 },
+  { name:'Ibu Maya', role:'Orang tua Rafi (SD Kelas 3)', text:'Tulisan Rafi yang dulu jelek, sekarang rapi sekali. Gurunya telaten banget.', emoji:'👩', rating:5 },
+];
+
+// ── Init ────────────────────────────────────────────────────────────────
+loadSettings();
+loadPrograms();
+loadTestimonials();
+</script>
+</body>
+</html>

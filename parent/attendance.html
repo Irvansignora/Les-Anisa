@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kehadiran — Les Anisa</title>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <link rel="stylesheet" href="../assets/css/dashboard.css"/>
+</head>
+<body>
+<div class="dash-wrapper">
+  <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div><div class="sidebar-logo-text">Les Anisa</div><div class="sidebar-logo-sub">Portal Orang Tua</div></div>
+    </a>
+    <div class="sidebar-user">
+      <div class="avatar" id="sb-avatar">O</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sb-name">Orang Tua</div>
+        <div class="sidebar-user-role">Wali Murid</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"  class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="progress.html"   class="nav-item"><span class="nav-icon">📋</span> Perkembangan</a>
+      <a href="attendance.html" class="nav-item active"><span class="nav-icon">📅</span> Kehadiran</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="../index.html" target="_blank" class="sidebar-view-site">🌐 Halaman Utama</a>
+      <button class="btn-logout" onclick="doLogout()">🚪 Keluar</button>
+    </div>
+  </aside>
+
+  <div class="dash-main">
+    <div class="dash-topbar">
+      <button onclick="openSidebar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--sage-700)">☰</button>
+      <span style="font-family:var(--font-display);font-weight:700;color:var(--sage-900)">Kehadiran</span>
+      <button onclick="doLogout()" style="background:none;border:none;font-size:20px;cursor:pointer">🚪</button>
+    </div>
+    <div class="dash-content">
+      <div class="page-header">
+        <h1 class="page-title">Rekap Kehadiran</h1>
+        <p class="page-sub" id="att-sub">Memuat...</p>
+      </div>
+
+      <!-- Summary pills -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="att-summary-grid"></div>
+
+      <!-- Rate bar -->
+      <div class="section-card" style="margin-bottom:20px" id="rate-card">
+        <div class="section-head"><h2>Tingkat Kehadiran</h2></div>
+        <div style="padding:16px" id="rate-body"><div class="spinner mx-auto"></div></div>
+      </div>
+
+      <!-- History list -->
+      <div class="section-card">
+        <div class="section-head"><h2>Riwayat Kehadiran</h2></div>
+        <div id="att-list"><div class="empty-state"><div class="spinner mx-auto"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script type="module">
+import { db, auth, collection, getDocs, query, where, orderBy, onAuthStateChanged, signOut, doc, getDoc }
+  from '../assets/js/firebase-config.js';
+import { requireAuth, formatDate, avatarInitial, ATT_STATUS } from '../assets/js/utils.js';
+
+const user = await requireAuth(auth, onAuthStateChanged, '../admin/login.html');
+const snap  = await getDoc(doc(db,'users',user.uid));
+const userName = snap.data()?.name || user.email?.split('@')[0] || 'Orang Tua';
+document.getElementById('sb-name').textContent   = userName;
+document.getElementById('sb-avatar').textContent = avatarInitial(userName);
+
+const stuSnap   = await getDocs(query(collection(db,'students'), where('parent_email','==',user.email)));
+const students  = stuSnap.docs.map(d => ({ id:d.id,...d.data() }));
+const studentIds = students.map(s=>s.id);
+
+async function loadAttendance() {
+  if (!studentIds.length) {
+    document.getElementById('att-sub').textContent = 'Belum ada data murid';
+    document.getElementById('att-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Data belum tersedia</p></div>';
+    return;
+  }
+
+  const snap = await getDocs(query(
+    collection(db,'attendance'),
+    where('student_id','in', studentIds),
+    orderBy('date','desc')
+  ));
+  const atts = snap.docs.map(d => d.data());
+  document.getElementById('att-sub').textContent = `${atts.length} total sesi tercatat`;
+
+  // Summary pills
+  const counts = { hadir:0, izin:0, sakit:0, alpha:0 };
+  atts.forEach(a => { if (counts[a.status]!==undefined) counts[a.status]++; });
+  const total = atts.length;
+
+  const colorMap = { hadir:'#dcfce7;color:#16a34a', izin:'#fef9c3;color:#ca8a04', sakit:'#dbeafe;color:#2563eb', alpha:'#fee2e2;color:#dc2626' };
+  document.getElementById('att-summary-grid').innerHTML = Object.entries(ATT_STATUS).map(([key,val]) =>
+    `<div style="background:${colorMap[key]};border-radius:var(--radius-xl);padding:16px;text-align:center">
+      <div style="font-family:var(--font-display);font-size:32px;font-weight:700">${counts[key]}</div>
+      <div style="font-size:13px;font-weight:600;margin-top:4px">${val.label}</div>
+      ${total ? `<div style="font-size:11px;opacity:.7;margin-top:2px">${Math.round(counts[key]/total*100)}%</div>` : ''}
+    </div>`
+  ).join('');
+
+  // Rate bar
+  const hadir = counts.hadir;
+  const rate  = total ? Math.round(hadir/total*100) : 0;
+  const rateColor = rate>=80?'#22c55e':rate>=60?'#eab308':'#ef4444';
+  const alphaWarn = counts.alpha > 2 ? `<p style="font-size:13px;color:#dc2626;margin-top:8px">⚠️ ${counts.alpha} kali alpha — segera hubungi pengajar.</p>` : '';
+  document.getElementById('rate-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:13px;color:var(--sage-500)">${hadir} hadir dari ${total} sesi</span>
+      <span style="font-family:var(--font-display);font-size:32px;font-weight:700;color:${rateColor}">${rate}%</span>
+    </div>
+    <div class="progress-bar" style="height:14px">
+      <div class="progress-fill" style="width:${rate}%;background:${rateColor}"></div>
+    </div>
+    ${alphaWarn}`;
+
+  // History list
+  if (!atts.length) {
+    document.getElementById('att-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data kehadiran</p></div>';
+    return;
+  }
+  const studentMap = {};
+  students.forEach(s => { studentMap[s.id] = s.name; });
+
+  document.getElementById('att-list').innerHTML = atts.map(a => {
+    const info = ATT_STATUS[a.status];
+    const iconMap = { hadir:'✓', izin:'I', sakit:'S', alpha:'A' };
+    const bgMap   = { hadir:'#dcfce7;color:#16a34a', izin:'#fef9c3;color:#ca8a04', sakit:'#dbeafe;color:#2563eb', alpha:'#fee2e2;color:#dc2626' };
+    return `<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--sage-50)">
+      <div style="width:42px;height:42px;border-radius:12px;background:${bgMap[a.status]};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">
+        ${iconMap[a.status]||'?'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px;color:var(--sage-900)">${studentMap[a.student_id]||'Anak'}</div>
+        <div style="font-size:12px;color:var(--sage-400)">${formatDate(a.date)}</div>
+        ${a.note ? `<div style="font-size:12px;color:var(--sage-500);font-style:italic;margin-top:2px">Ket: ${a.note}</div>` : ''}
+      </div>
+      <span class="badge ${info?.badge||'badge-sage'}">${info?.label||a.status}</span>
+    </div>`;
+  }).join('');
+}
+
+window.doLogout    = async () => { await signOut(auth); window.location.href = '../admin/login.html'; };
+window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
+window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
+
+loadAttendance();
+</script>
+</body>
+</html>

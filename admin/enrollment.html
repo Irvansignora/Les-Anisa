@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pendaftaran — Les Anisa Admin</title>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <link rel="stylesheet" href="../assets/css/dashboard.css"/>
+</head>
+<body>
+<div class="dash-wrapper">
+  <div class="dash-main">
+    <div class="dash-content">
+      <div class="page-header">
+        <h1 class="page-title">Pendaftaran Masuk</h1>
+        <p class="page-sub" id="enroll-sub">Memuat...</p>
+      </div>
+
+      <div class="filter-tabs" id="status-filter">
+        <span class="filter-tab active" data-status="">Semua</span>
+        <span class="filter-tab" data-status="pending">⏳ Pending</span>
+        <span class="filter-tab" data-status="contacted">📞 Dihubungi</span>
+        <span class="filter-tab" data-status="accepted">✅ Diterima</span>
+        <span class="filter-tab" data-status="rejected">❌ Ditolak</span>
+      </div>
+
+      <div id="enrollments-list">
+        <div class="empty-state"><div class="spinner mx-auto"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script type="module">
+import { db, auth, collection, getDocs, updateDoc, doc, query, orderBy, onAuthStateChanged, serverTimestamp }
+  from '../assets/js/firebase-config.js';
+import { initAdminShell } from '../assets/js/admin-shell.js';
+import { toast, formatDate, SUBJECT_ICONS } from '../assets/js/utils.js';
+
+await initAdminShell('enrollment');
+
+let allEnrollments = [];
+let activeStatus   = '';
+
+async function loadEnrollments() {
+  const snap = await getDocs(query(collection(db,'enrollments'), orderBy('created_at','desc')));
+  allEnrollments = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  const pending  = allEnrollments.filter(e => e.status==='pending').length;
+  document.getElementById('enroll-sub').textContent =
+    pending > 0 ? `${pending} pending review · ${allEnrollments.length} total` : `${allEnrollments.length} total pendaftaran`;
+  render(allEnrollments);
+}
+
+const STATUS_STYLES = {
+  pending:   'badge-amber', contacted: 'badge-blue',
+  accepted:  'badge-green', rejected:  'badge-red',
+};
+const STATUS_LABELS = {
+  pending:'Pending', contacted:'Dihubungi', accepted:'Diterima', rejected:'Ditolak',
+};
+
+function render(list) {
+  const filtered = activeStatus ? list.filter(e => e.status===activeStatus) : list;
+  const el = document.getElementById('enrollments-list');
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>Tidak ada data</p></div>';
+    return;
+  }
+  el.innerHTML = filtered.map(e => {
+    const waNum  = (e.parent_phone||'').replace(/[^0-9]/g,'').replace(/^0/,'62');
+    const waLink = `https://wa.me/${waNum}?text=${encodeURIComponent(`Halo ${e.parent_name}, kami dari Les Anisa ingin konfirmasi pendaftaran atas nama ${e.student_name}.`)}`;
+    const subjects = (e.subjects||[]).map(s =>
+      `<span class="badge badge-sage">${SUBJECT_ICONS[s]||'📚'} ${s}</span>`
+    ).join('');
+
+    const actionBtns = e.status === 'pending' ? `
+      <button onclick="updateStatus('${e.id}','contacted')" class="btn btn-sm" style="background:#dbeafe;color:#1d4ed8">📞 Tandai Dihubungi</button>
+      <button onclick="updateStatus('${e.id}','accepted')"  class="btn btn-sm" style="background:#dcfce7;color:#15803d">✅ Terima</button>
+      <button onclick="updateStatus('${e.id}','rejected')"  class="btn btn-sm" style="background:#fee2e2;color:#dc2626">❌ Tolak</button>
+    ` : e.status === 'contacted' ? `
+      <button onclick="updateStatus('${e.id}','accepted')"  class="btn btn-sm" style="background:#dcfce7;color:#15803d">✅ Terima</button>
+      <button onclick="updateStatus('${e.id}','rejected')"  class="btn btn-sm" style="background:#fee2e2;color:#dc2626">❌ Tolak</button>
+    ` : `
+      <button onclick="updateStatus('${e.id}','pending')" class="btn btn-sm btn-secondary">↩ Reset ke Pending</button>
+    `;
+
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:20px">👶</span>
+            <span style="font-weight:700;font-size:16px;color:var(--sage-900)">${e.student_name}</span>
+            <span class="badge ${STATUS_STYLES[e.status]}">${STATUS_LABELS[e.status]}</span>
+          </div>
+          <div style="font-size:13px;color:var(--sage-500)">${e.student_grade}${e.student_age?' · '+e.student_age:''}</div>
+        </div>
+        <span style="font-size:12px;color:var(--sage-400)">${formatDate(e.created_at)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;background:var(--sage-50);border-radius:var(--radius-lg);padding:14px;margin-bottom:12px">
+        <div>
+          <p style="font-size:11px;font-weight:600;color:var(--sage-500);margin-bottom:6px">👨‍👩‍👦 ORANG TUA</p>
+          <p style="font-weight:600;font-size:14px;color:var(--sage-900)">${e.parent_name}</p>
+          <p style="font-size:13px;color:var(--sage-600)">${e.parent_phone}</p>
+          <p style="font-size:12px;color:var(--sage-400)">${e.parent_email||'-'}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;font-weight:600;color:var(--sage-500);margin-bottom:6px">🎯 PROGRAM</p>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">${subjects}</div>
+        </div>
+      </div>
+      ${e.message ? `<div style="background:var(--cream-100);border:1px solid var(--cream-300);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--sage-700);font-style:italic">"${e.message}"</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <a href="${waLink}" target="_blank" class="btn btn-sm" style="background:#dcfce7;color:#15803d">💬 WhatsApp</a>
+        ${actionBtns}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.updateStatus = async function(id, status) {
+  try {
+    await updateDoc(doc(db,'enrollments',id), { status, updated_at:serverTimestamp() });
+    toast(`Status diperbarui: ${STATUS_LABELS[status]}`, 'success');
+    await loadEnrollments();
+  } catch(e) { toast('Gagal update status','error'); }
+};
+
+document.getElementById('status-filter').addEventListener('click', e => {
+  const tab = e.target.closest('.filter-tab');
+  if (!tab) return;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  activeStatus = tab.dataset.status;
+  render(allEnrollments);
+});
+
+loadEnrollments();
+</script>
+</body>
+</html>
