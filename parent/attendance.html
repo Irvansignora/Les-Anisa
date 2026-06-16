@@ -1,10 +1,38 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>Kehadiran — Les Anisa</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0ea5e9"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
   <link rel="stylesheet" href="../assets/css/style.css"/>
   <link rel="stylesheet" href="../assets/css/dashboard.css"/>
+  <style>
+    .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+    .cal-day-header { text-align: center; font-size: 11px; font-weight: 700; color: var(--neutral-400); padding: 6px 0; }
+    .cal-day {
+      aspect-ratio: 1; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: var(--neutral-300); position: relative;
+    }
+    .cal-day.has-session { cursor: default; }
+    .cal-day.hadir { background: #dcfce7; color: #15803d; }
+    .cal-day.izin  { background: #fef9c3; color: #a16207; }
+    .cal-day.sakit { background: #dbeafe; color: #1d4ed8; }
+    .cal-day.alpha { background: #fee2e2; color: #dc2626; }
+    .att-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .att-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--neutral-600); }
+    .att-legend-dot { width: 14px; height: 14px; border-radius: 4px; }
+    .att-summary-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 18px; }
+    .att-summary-item { background: white; border: 2px solid var(--neutral-100); border-radius: var(--radius-lg); padding: 12px; text-align: center; }
+    .att-summary-num { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1; }
+    .att-summary-label { font-size: 11px; color: var(--neutral-400); font-weight: 600; margin-top: 4px; }
+    @media(max-width:480px){ .att-summary-grid { grid-template-columns: repeat(2,1fr); } }
+  </style>
 </head>
 <body>
 <div class="dash-wrapper">
@@ -15,15 +43,12 @@
       <div><div class="sidebar-logo-text">Les Anisa</div><div class="sidebar-logo-sub">Portal Orang Tua</div></div>
     </a>
     <div class="sidebar-user">
-      <div class="avatar" id="sb-avatar">O</div>
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-name" id="sb-name">Orang Tua</div>
-        <div class="sidebar-user-role">Wali Murid</div>
-      </div>
+      <div class="avatar" id="sb-avatar" style="background:linear-gradient(135deg,var(--sky-200),var(--purple-100));color:var(--sky-700);font-weight:800">O</div>
+      <div class="sidebar-user-info"><div class="sidebar-user-name" id="sb-name">Orang Tua</div><div class="sidebar-user-role">Wali Murid</div></div>
     </div>
     <nav class="sidebar-nav">
       <a href="dashboard.html"  class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-      <a href="progress.html"   class="nav-item"><span class="nav-icon">📋</span> Perkembangan</a>
+      <a href="progress.html"   class="nav-item"><span class="nav-icon">📈</span> Perkembangan</a>
       <a href="attendance.html" class="nav-item active"><span class="nav-icon">📅</span> Kehadiran</a>
     </nav>
     <div class="sidebar-footer">
@@ -34,125 +59,156 @@
 
   <div class="dash-main">
     <div class="dash-topbar">
-      <button onclick="openSidebar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--sage-700)">☰</button>
-      <span style="font-family:var(--font-display);font-weight:700;color:var(--sage-900)">Kehadiran</span>
-      <button onclick="doLogout()" style="background:none;border:none;font-size:20px;cursor:pointer">🚪</button>
+      <button class="topbar-icon-btn" onclick="openSidebar()">☰</button>
+      <div class="topbar-logo"><div class="topbar-logo-icon">📚</div><span class="topbar-logo-text">Les Anisa</span></div>
+      <button class="topbar-icon-btn" onclick="doLogout()">🚪</button>
     </div>
     <div class="dash-content">
       <div class="page-header">
-        <h1 class="page-title">Rekap Kehadiran</h1>
-        <p class="page-sub" id="att-sub">Memuat...</p>
+        <h1 class="page-title">📅 Kehadiran</h1>
+        <p class="page-sub" id="student-name-sub">Rekap kehadiran si kecil</p>
       </div>
 
-      <!-- Summary pills -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="att-summary-grid"></div>
-
-      <!-- Rate bar -->
-      <div class="section-card" style="margin-bottom:20px" id="rate-card">
-        <div class="section-head"><h2>Tingkat Kehadiran</h2></div>
-        <div style="padding:16px" id="rate-body"><div class="spinner mx-auto"></div></div>
+      <!-- Summary stats -->
+      <div class="att-summary-grid" id="att-summary">
+        <div class="att-summary-item"><div class="att-summary-num" style="color:#15803d">–</div><div class="att-legend-dot" style="background:#dcfce7;margin:4px auto 2px;width:24px;height:6px;border-radius:3px"></div><div class="att-summary-label">Hadir</div></div>
+        <div class="att-summary-item"><div class="att-summary-num" style="color:#a16207">–</div><div class="att-legend-dot" style="background:#fef9c3;margin:4px auto 2px;width:24px;height:6px;border-radius:3px"></div><div class="att-summary-label">Izin</div></div>
+        <div class="att-summary-item"><div class="att-summary-num" style="color:#1d4ed8">–</div><div class="att-legend-dot" style="background:#dbeafe;margin:4px auto 2px;width:24px;height:6px;border-radius:3px"></div><div class="att-summary-label">Sakit</div></div>
+        <div class="att-summary-item"><div class="att-summary-num" style="color:#dc2626">–</div><div class="att-legend-dot" style="background:#fee2e2;margin:4px auto 2px;width:24px;height:6px;border-radius:3px"></div><div class="att-summary-label">Alpha</div></div>
       </div>
 
-      <!-- History list -->
+      <!-- Calendar -->
+      <div class="section-card" style="margin-bottom:18px">
+        <div class="section-head">
+          <h2 id="cal-title">📆 Bulan Ini</h2>
+          <div style="display:flex;gap:8px">
+            <button onclick="prevMonth()" class="topbar-icon-btn" style="font-size:14px">‹</button>
+            <button onclick="nextMonth()" class="topbar-icon-btn" style="font-size:14px">›</button>
+          </div>
+        </div>
+        <div style="padding:16px">
+          <div class="att-legend">
+            <div class="att-legend-item"><div class="att-legend-dot" style="background:#dcfce7"></div>Hadir</div>
+            <div class="att-legend-item"><div class="att-legend-dot" style="background:#fef9c3"></div>Izin</div>
+            <div class="att-legend-item"><div class="att-legend-dot" style="background:#dbeafe"></div>Sakit</div>
+            <div class="att-legend-item"><div class="att-legend-dot" style="background:#fee2e2"></div>Alpha</div>
+          </div>
+          <div class="calendar-grid" id="cal-grid">
+            <div class="empty-state"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance list -->
       <div class="section-card">
-        <div class="section-head"><h2>Riwayat Kehadiran</h2></div>
+        <div class="section-head"><h2>📋 Daftar Kehadiran</h2></div>
         <div id="att-list"><div class="empty-state"><div class="spinner mx-auto"></div></div></div>
       </div>
     </div>
   </div>
 </div>
-<div id="toast-container"></div>
 
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="dashboard.html" class="bnav-item"><div class="bnav-icon">🏠</div><span class="bnav-label">Beranda</span></a>
+    <a href="progress.html" class="bnav-item"><div class="bnav-icon">📈</div><span class="bnav-label">Nilai</span></a>
+    <a href="attendance.html" class="bnav-item active"><div class="bnav-icon">📅</div><span class="bnav-label">Hadir</span></a>
+    <a href="../index.html" class="bnav-item"><div class="bnav-icon">🌐</div><span class="bnav-label">Website</span></a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+<script src="../assets/js/pwa.js"></script>
 <script type="module">
 import { db, auth, collection, getDocs, query, where, orderBy, onAuthStateChanged, signOut, doc, getDoc }
   from '../assets/js/firebase-config.js';
-import { requireAuth, formatDate, avatarInitial, ATT_STATUS } from '../assets/js/utils.js';
+import { requireAuth, toast, formatDate, avatarInitial, ATT_STATUS } from '../assets/js/utils.js';
 
 const user = await requireAuth(auth, onAuthStateChanged, '../admin/login.html');
-const snap  = await getDoc(doc(db,'users',user.uid));
-const userName = snap.data()?.name || user.email?.split('@')[0] || 'Orang Tua';
-document.getElementById('sb-name').textContent   = userName;
+const snap = await getDoc(doc(db,'users',user.uid));
+const userName = snap.data()?.name || user.email?.split('@')[0] || 'Bunda/Ayah';
+document.getElementById('sb-name').textContent = userName;
 document.getElementById('sb-avatar').textContent = avatarInitial(userName);
 
-const stuSnap   = await getDocs(query(collection(db,'students'), where('parent_email','==',user.email)));
-const students  = stuSnap.docs.map(d => ({ id:d.id,...d.data() }));
-const studentIds = students.map(s=>s.id);
+const stuSnap = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
+const students = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+if (students.length) document.getElementById('student-name-sub').textContent = `Rekap kehadiran ${students[0].name}`;
 
-async function loadAttendance() {
-  if (!studentIds.length) {
-    document.getElementById('att-sub').textContent = 'Belum ada data murid';
-    document.getElementById('att-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Data belum tersedia</p></div>';
-    return;
+const studentIds = students.map(s => s.id);
+let allAtts = [];
+if (studentIds.length) {
+  const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc')));
+  allAtts = attSnap.docs.map(d => d.data());
+}
+
+// Summary
+const counts = { hadir:0, izin:0, sakit:0, alpha:0 };
+allAtts.forEach(a => { if (counts[a.status]!==undefined) counts[a.status]++; });
+const summaryEl = document.getElementById('att-summary');
+const colors = { hadir:'#15803d', izin:'#a16207', sakit:'#1d4ed8', alpha:'#dc2626' };
+const bgs    = { hadir:'#dcfce7', izin:'#fef9c3', sakit:'#dbeafe', alpha:'#fee2e2' };
+const labels = { hadir:'Hadir', izin:'Izin', sakit:'Sakit', alpha:'Alpha' };
+summaryEl.innerHTML = Object.entries(counts).map(([k,v]) =>
+  `<div class="att-summary-item">
+    <div class="att-summary-num" style="color:${colors[k]}">${v}</div>
+    <div style="width:24px;height:6px;border-radius:3px;background:${bgs[k]};margin:4px auto 2px"></div>
+    <div class="att-summary-label">${labels[k]}</div>
+  </div>`
+).join('');
+
+// Build date map
+const dateMap = {};
+allAtts.forEach(a => { dateMap[a.date] = a.status; });
+
+// Calendar
+let viewDate = new Date();
+const DAYS = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function renderCalendar() {
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  document.getElementById('cal-title').textContent = `📆 ${MONTHS_ID[m]} ${y}`;
+  const firstDay = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  let html = DAYS.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+  for (let i=0;i<firstDay;i++) html += '<div class="cal-day"></div>';
+  for (let d=1;d<=daysInMonth;d++) {
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const status = dateMap[dateStr];
+    html += `<div class="cal-day${status?' has-session '+status:''}" title="${status||''}">${d}</div>`;
   }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+renderCalendar();
+window.prevMonth = () => { viewDate.setMonth(viewDate.getMonth()-1); renderCalendar(); };
+window.nextMonth = () => { viewDate.setMonth(viewDate.getMonth()+1); renderCalendar(); };
 
-  const snap = await getDocs(query(
-    collection(db,'attendance'),
-    where('student_id','in', studentIds),
-    orderBy('date','desc')
-  ));
-  const atts = snap.docs.map(d => d.data());
-  document.getElementById('att-sub').textContent = `${atts.length} total sesi tercatat`;
-
-  // Summary pills
-  const counts = { hadir:0, izin:0, sakit:0, alpha:0 };
-  atts.forEach(a => { if (counts[a.status]!==undefined) counts[a.status]++; });
-  const total = atts.length;
-
-  const colorMap = { hadir:'#dcfce7;color:#16a34a', izin:'#fef9c3;color:#ca8a04', sakit:'#dbeafe;color:#2563eb', alpha:'#fee2e2;color:#dc2626' };
-  document.getElementById('att-summary-grid').innerHTML = Object.entries(ATT_STATUS).map(([key,val]) =>
-    `<div style="background:${colorMap[key]};border-radius:var(--radius-xl);padding:16px;text-align:center">
-      <div style="font-family:var(--font-display);font-size:32px;font-weight:700">${counts[key]}</div>
-      <div style="font-size:13px;font-weight:600;margin-top:4px">${val.label}</div>
-      ${total ? `<div style="font-size:11px;opacity:.7;margin-top:2px">${Math.round(counts[key]/total*100)}%</div>` : ''}
-    </div>`
-  ).join('');
-
-  // Rate bar
-  const hadir = counts.hadir;
-  const rate  = total ? Math.round(hadir/total*100) : 0;
-  const rateColor = rate>=80?'#22c55e':rate>=60?'#eab308':'#ef4444';
-  const alphaWarn = counts.alpha > 2 ? `<p style="font-size:13px;color:#dc2626;margin-top:8px">⚠️ ${counts.alpha} kali alpha — segera hubungi pengajar.</p>` : '';
-  document.getElementById('rate-body').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-size:13px;color:var(--sage-500)">${hadir} hadir dari ${total} sesi</span>
-      <span style="font-family:var(--font-display);font-size:32px;font-weight:700;color:${rateColor}">${rate}%</span>
-    </div>
-    <div class="progress-bar" style="height:14px">
-      <div class="progress-fill" style="width:${rate}%;background:${rateColor}"></div>
-    </div>
-    ${alphaWarn}`;
-
-  // History list
-  if (!atts.length) {
-    document.getElementById('att-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data kehadiran</p></div>';
-    return;
-  }
-  const studentMap = {};
-  students.forEach(s => { studentMap[s.id] = s.name; });
-
-  document.getElementById('att-list').innerHTML = atts.map(a => {
-    const info = ATT_STATUS[a.status];
-    const iconMap = { hadir:'✓', izin:'I', sakit:'S', alpha:'A' };
-    const bgMap   = { hadir:'#dcfce7;color:#16a34a', izin:'#fef9c3;color:#ca8a04', sakit:'#dbeafe;color:#2563eb', alpha:'#fee2e2;color:#dc2626' };
-    return `<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--sage-50)">
-      <div style="width:42px;height:42px;border-radius:12px;background:${bgMap[a.status]};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">
-        ${iconMap[a.status]||'?'}
+// List
+const listEl = document.getElementById('att-list');
+if (!allAtts.length) {
+  listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data kehadiran</p></div>';
+} else {
+  const emojis = { hadir:'✅', izin:'📝', sakit:'🤒', alpha:'❌' };
+  const bgMap  = { hadir:'#dcfce7', izin:'#fef9c3', sakit:'#dbeafe', alpha:'#fee2e2' };
+  listEl.innerHTML = allAtts.map(a => `
+    <div class="report-card">
+      <div style="width:44px;height:44px;border-radius:14px;background:${bgMap[a.status]||'#f5f5f5'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${emojis[a.status]||'📅'}</div>
+      <div class="report-body">
+        <div class="report-title">${formatDate(a.date)}</div>
+        <div class="report-meta">
+          <span style="font-weight:700;color:${colors[a.status]||'#737373'}">${labels[a.status]||a.status}</span>
+          ${a.note ? ` · ${a.note}` : ''}
+        </div>
       </div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:13px;color:var(--sage-900)">${studentMap[a.student_id]||'Anak'}</div>
-        <div style="font-size:12px;color:var(--sage-400)">${formatDate(a.date)}</div>
-        ${a.note ? `<div style="font-size:12px;color:var(--sage-500);font-style:italic;margin-top:2px">Ket: ${a.note}</div>` : ''}
-      </div>
-      <span class="badge ${info?.badge||'badge-sage'}">${info?.label||a.status}</span>
-    </div>`;
-  }).join('');
+    </div>
+  `).join('');
 }
 
 window.doLogout    = async () => { await signOut(auth); window.location.href = '../admin/login.html'; };
 window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
 window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
-
-loadAttendance();
 </script>
 </body>
 </html>
+
