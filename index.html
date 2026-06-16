@@ -6,6 +6,13 @@
   <title>Les Anisa — Bimbingan Calistung TK, PAUD & SD</title>
   <meta name="description" content="Bimbingan belajar calistung (membaca, menulis, berhitung) untuk anak TK, PAUD, dan SD. Hanya Rp60.000/bulan · 12 pertemuan." />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0ea5e9"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Les Anisa"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
   <style>
     /* ════════════════════════════════════════════
        NAVBAR
@@ -851,6 +858,7 @@
 </footer>
 
 <div id="toast-container"></div>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{});})};</script>
 
 <script type="module">
 import { db, collection, getDocs, addDoc, serverTimestamp }
