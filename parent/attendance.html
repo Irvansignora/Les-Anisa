@@ -125,7 +125,7 @@ import { db, auth, collection, getDocs, query, where, orderBy, onAuthStateChange
   from '../assets/js/firebase-config.js';
 import { requireAuth, toast, formatDate, avatarInitial, ATT_STATUS } from '../assets/js/utils.js';
 
-const user = await requireAuth(auth, onAuthStateChanged, '../admin/login.html');
+const user = await requireAuth(auth, onAuthStateChanged, '/login/');
 const snap = await getDoc(doc(db,'users',user.uid));
 const userName = snap.data()?.name || user.email?.split('@')[0] || 'Bunda/Ayah';
 document.getElementById('sb-name').textContent = userName;
@@ -205,7 +205,7 @@ if (!allAtts.length) {
   `).join('');
 }
 
-window.doLogout    = async () => { await signOut(auth); window.location.href = '../admin/login.html'; };
+window.doLogout    = async () => { await signOut(auth); window.location.href = '/login/'; };
 window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
 window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
 </script>
