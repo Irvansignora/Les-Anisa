@@ -1,23 +1,20 @@
 // ══════════════════════════════════════════════════════════════════
-//  ⚠️  WAJIB DIISI SEBELUM DEPLOY
-//  Ambil dari: Firebase Console → Project Settings → Your Apps → Config
-// ══════════════════════════════════════════════════════════════════
 export const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyCX34OInhWPCaiYuXytr8YeSxqLKpo-R9U",
+  authDomain:        "les-anisa.firebaseapp.com",
+  projectId:         "les-anisa",
+  storageBucket:     "les-anisa.firebasestorage.app",
+  messagingSenderId: "75180789966",
+  appId:             "1:75180789966:web:92112765afb525c43cc09f",
+  measurementId:	 "G-90PVYB2S7E"
 };
-
 // ══════════════════════════════════════════════════════════════════
 //  ⚠️  WAJIB DIISI SEBELUM DEPLOY
 //  Cloudinary: Dashboard → Settings → Upload → Upload Presets
 //  Buat preset "Unsigned" dengan nama: les_anisa_upload
 // ══════════════════════════════════════════════════════════════════
 export const CLOUDINARY_CONFIG = {
-  cloudName:    "YOUR_CLOUD_NAME",
+  cloudName:    "dbtkhnqxj",
   uploadPreset: "les_anisa_upload"
 };
 
