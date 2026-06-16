@@ -708,7 +708,102 @@ function renderEnrollList() {
   }).join('');
 }
 
-window.updateEnrollStatus=async function(id,status){try{await updateDoc(doc(db,'enrollments',id),{status,updated_at:serverTimestamp()});toast(`Status: ${ESTATUS_LABELS[status]}`,'success');await renderEnrollment();}catch(e){toast('Gagal update status','error');}};
+window.updateEnrollStatus=async function(id,status){
+  try{
+    const enrollRef=doc(db,'enrollments',id);
+    await updateDoc(enrollRef,{status,updated_at:serverTimestamp()});
+
+    // ── Auto-create student + parent account when accepted ──────────
+    if(status==='accepted'){
+      const snap=await getDoc(enrollRef);
+      const e=snap.data();
+
+      // 1. Check if student already created from this enrollment
+      if(e.student_id){
+        toast('Murid sudah terdaftar sebelumnya ✅','info');
+        await renderEnrollment(); return;
+      }
+
+      // 2. Create student doc in Firestore
+      const studentData={
+        name:           e.student_name,
+        nickname:       e.student_name.split(' ')[0],
+        grade:          e.student_grade||'',
+        age:            e.student_age||'',
+        subjects:       e.subjects||[],
+        preferred_schedule: e.preferred_schedule||'',
+        parent_name:    e.parent_name,
+        parent_phone:   e.parent_phone,
+        parent_email:   e.parent_email||'',
+        is_active:      true,
+        enrollment_id:  id,
+        created_at:     serverTimestamp(),
+      };
+      const studentRef=await addDoc(collection(db,'students'),studentData);
+
+      // 3. Create parent account in Firebase Auth via REST API (createUser)
+      //    We use Firebase Auth REST API so we don't switch the admin's session
+      let parentUid=null;
+      if(e.parent_email){
+        try{
+          const {FIREBASE_CONFIG} = await import('../assets/js/firebase-config.js');
+          const apiKey=FIREBASE_CONFIG.apiKey;
+          // Default password = phone number (orang tua wajib ganti sendiri)
+          const tempPass=e.parent_phone.replace(/\D/g,'').slice(-8)||'lesanisa123';
+          const res=await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
+            {method:'POST',headers:{'Content-Type':'application/json'},
+             body:JSON.stringify({email:e.parent_email,password:tempPass,returnSecureToken:true})}
+          );
+          const data=await res.json();
+          if(data.localId){
+            parentUid=data.localId;
+            // 4. Save user doc with role=parent
+            await setDoc(doc(db,'users',parentUid),{
+              name:     e.parent_name,
+              email:    e.parent_email,
+              phone:    e.parent_phone,
+              role:     'parent',
+              student_id: studentRef.id,
+              created_at: serverTimestamp(),
+            });
+          } else {
+            // Email mungkin sudah terdaftar — cari user doc by email
+            const existSnap=await getDocs(query(collection(db,'users'),where('email','==',e.parent_email)));
+            if(!existSnap.empty) parentUid=existSnap.docs[0].id;
+          }
+        }catch(authErr){ console.warn('Auth create skipped:',authErr); }
+      }
+
+      // 5. Link student_id & parent_uid back to enrollment
+      await updateDoc(enrollRef,{
+        student_id: studentRef.id,
+        parent_uid: parentUid||null,
+      });
+
+      // 6. Build notification info
+      const tempPass2=e.parent_phone?e.parent_phone.replace(/\D/g,'').slice(-8):'lesanisa123';
+      const loginUrl=`${location.origin}/login/`;
+      const waMsg=`Halo ${e.parent_name}! 🎉 Selamat, *${e.student_name}* resmi diterima di *Les Anisa*!\n\n📚 Jadwal: *${e.preferred_schedule||'-'}*\n\n🔐 Login Portal Orang Tua:\n👉 ${loginUrl}\n📧 Email: ${e.parent_email}\n🔑 Password sementara: *${tempPass2}*\n\n_Harap segera ganti password setelah login pertama ya!_ 😊`;
+      const waLink=`https://wa.me/${(e.parent_phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(waMsg)}`;
+
+      toast('✅ Murid berhasil ditambahkan!','success');
+      // Show popup with WA link & credentials
+      setTimeout(()=>{
+        if(confirm(`✅ Murid "${e.student_name}" berhasil dibuat!\n\nKirim info login ke orang tua via WhatsApp?`)){
+          window.open(waLink,'_blank');
+        }
+      },300);
+    } else {
+      toast(`Status: ${ESTATUS_LABELS[status]}`,'success');
+    }
+
+    await renderEnrollment();
+  }catch(err){
+    console.error(err);
+    toast('Gagal update status: '+err.message,'error');
+  }
+};
 
 // ════════════════════════════════════════════════════════════════
 // PAGE: SETTINGS
