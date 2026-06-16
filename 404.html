@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Les Anisa</title>
+  <script>
+    (function() {
+      var path = window.location.pathname;
+      // Remove trailing slash for comparison
+      var clean = path.replace(/\/$/, '');
+
+      if (clean === '/admin/login' || path === '/admin/login/') {
+        window.location.replace('/admin/login/');
+      } else if (clean === '/admin' || clean.startsWith('/admin/')) {
+        window.location.replace('/admin/');
+      } else if (clean === '/parent' || clean.startsWith('/parent/')) {
+        window.location.replace('/parent/');
+      } else {
+        window.location.replace('/');
+      }
+    })();
+  </script>
+</head>
+<body></body>
+</html>
