@@ -29,7 +29,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged
+  signOut, onAuthStateChanged, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const app  = initializeApp(FIREBASE_CONFIG);
@@ -42,5 +42,5 @@ export {
   addDoc, updateDoc, deleteDoc, setDoc,
   query, where, orderBy, limit,
   serverTimestamp, onSnapshot,
-  signInWithEmailAndPassword, signOut, onAuthStateChanged
+  signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail
 };
