@@ -1,8 +1,15 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Perkembangan Belajar — Les Anisa</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Perkembangan — Les Anisa</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0ea5e9"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
   <link rel="stylesheet" href="../assets/css/style.css"/>
   <link rel="stylesheet" href="../assets/css/dashboard.css"/>
 </head>
@@ -15,15 +22,12 @@
       <div><div class="sidebar-logo-text">Les Anisa</div><div class="sidebar-logo-sub">Portal Orang Tua</div></div>
     </a>
     <div class="sidebar-user">
-      <div class="avatar" id="sb-avatar">O</div>
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-name" id="sb-name">Orang Tua</div>
-        <div class="sidebar-user-role">Wali Murid</div>
-      </div>
+      <div class="avatar" id="sb-avatar" style="background:linear-gradient(135deg,var(--sky-200),var(--purple-100));color:var(--sky-700);font-weight:800">O</div>
+      <div class="sidebar-user-info"><div class="sidebar-user-name" id="sb-name">Orang Tua</div><div class="sidebar-user-role">Wali Murid</div></div>
     </div>
     <nav class="sidebar-nav">
       <a href="dashboard.html"  class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-      <a href="progress.html"   class="nav-item active"><span class="nav-icon">📋</span> Perkembangan</a>
+      <a href="progress.html"   class="nav-item active"><span class="nav-icon">📈</span> Perkembangan</a>
       <a href="attendance.html" class="nav-item"><span class="nav-icon">📅</span> Kehadiran</a>
     </nav>
     <div class="sidebar-footer">
@@ -34,160 +38,106 @@
 
   <div class="dash-main">
     <div class="dash-topbar">
-      <button onclick="openSidebar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--sage-700)">☰</button>
-      <span style="font-family:var(--font-display);font-weight:700;color:var(--sage-900)">Perkembangan Belajar</span>
-      <button onclick="doLogout()" style="background:none;border:none;font-size:20px;cursor:pointer">🚪</button>
+      <button class="topbar-icon-btn" onclick="openSidebar()">☰</button>
+      <div class="topbar-logo"><div class="topbar-logo-icon">📚</div><span class="topbar-logo-text">Les Anisa</span></div>
+      <button class="topbar-icon-btn" onclick="doLogout()">🚪</button>
     </div>
     <div class="dash-content">
       <div class="page-header">
-        <h1 class="page-title">Perkembangan Belajar</h1>
-        <p class="page-sub" id="prog-sub">Memuat...</p>
+        <h1 class="page-title">📈 Perkembangan Belajar</h1>
+        <p class="page-sub" id="student-name-sub">Laporan sesi calistung si kecil</p>
       </div>
-
-      <!-- Summary cards per subject -->
-      <div id="summary-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px"></div>
 
       <!-- Filter -->
-      <div class="filter-tabs" id="subj-filter">
-        <span class="filter-tab active" data-subj="">Semua Program</span>
-        <span class="filter-tab" data-subj="Membaca">📖 Membaca</span>
-        <span class="filter-tab" data-subj="Menulis">✏️ Menulis</span>
-        <span class="filter-tab" data-subj="Berhitung">🔢 Berhitung</span>
-        <span class="filter-tab" data-subj="Calistung (Lengkap)">🌟 Lengkap</span>
+      <div class="filter-tabs" id="filter-tabs">
+        <button class="filter-tab active" data-subject="all">Semua</button>
+        <button class="filter-tab" data-subject="Membaca">📖 Membaca</button>
+        <button class="filter-tab" data-subject="Menulis">✏️ Menulis</button>
+        <button class="filter-tab" data-subject="Berhitung">🔢 Berhitung</button>
       </div>
 
-      <!-- All reports -->
-      <div class="section-card" id="reports-wrap">
-        <div class="empty-state"><div class="spinner mx-auto"></div></div>
+      <!-- Reports list -->
+      <div class="section-card">
+        <div id="reports-list"><div class="empty-state"><div class="spinner mx-auto"></div></div></div>
       </div>
     </div>
   </div>
 </div>
-<div id="toast-container"></div>
 
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="dashboard.html" class="bnav-item"><div class="bnav-icon">🏠</div><span class="bnav-label">Beranda</span></a>
+    <a href="progress.html" class="bnav-item active"><div class="bnav-icon">📈</div><span class="bnav-label">Nilai</span></a>
+    <a href="attendance.html" class="bnav-item"><div class="bnav-icon">📅</div><span class="bnav-label">Hadir</span></a>
+    <a href="../index.html" class="bnav-item"><div class="bnav-icon">🌐</div><span class="bnav-label">Website</span></a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+<script src="../assets/js/pwa.js"></script>
 <script type="module">
 import { db, auth, collection, getDocs, query, where, orderBy, onAuthStateChanged, signOut, doc, getDoc }
   from '../assets/js/firebase-config.js';
-import { requireAuth, formatDate, avatarInitial, scoreClass, SUBJECT_ICONS, openLightbox } from '../assets/js/utils.js';
+import { requireAuth, toast, formatDate, avatarInitial, scoreClass, SUBJECT_ICONS } from '../assets/js/utils.js';
 
 const user = await requireAuth(auth, onAuthStateChanged, '../admin/login.html');
-const snap  = await getDoc(doc(db,'users',user.uid));
-const userName = snap.data()?.name || user.email?.split('@')[0] || 'Orang Tua';
-document.getElementById('sb-name').textContent   = userName;
+const snap = await getDoc(doc(db,'users',user.uid));
+const userName = snap.data()?.name || user.email?.split('@')[0] || 'Bunda/Ayah';
+document.getElementById('sb-name').textContent = userName;
 document.getElementById('sb-avatar').textContent = avatarInitial(userName);
 
-// Load students for this parent
-const stuSnap  = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
-const students  = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+const stuSnap = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
+const students = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+if (students.length) document.getElementById('student-name-sub').textContent = `Laporan belajar ${students[0].name}`;
+
 const studentIds = students.map(s => s.id);
-
-let allReports  = [];
-let activeSubj  = '';
-
-async function loadReports() {
-  if (!studentIds.length) {
-    document.getElementById('prog-sub').textContent = 'Belum ada data murid';
-    document.getElementById('reports-wrap').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Data belum tersedia. Hubungi admin.</p></div>';
-    return;
-  }
-  const repSnap = await getDocs(query(
-    collection(db,'progress_reports'),
-    where('student_id','in', studentIds),
-    orderBy('session_date','desc')
-  ));
+let allReports = [];
+if (studentIds.length) {
+  const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc')));
   allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-  document.getElementById('prog-sub').textContent = `${allReports.length} sesi tercatat`;
-
-  renderSummary();
-  renderReports();
 }
 
-function renderSummary() {
-  const bySubject = {};
-  allReports.forEach(r => {
-    if (!bySubject[r.subject]) bySubject[r.subject] = [];
-    bySubject[r.subject].push(r);
-  });
-
-  if (!Object.keys(bySubject).length) {
-    document.getElementById('summary-cards').innerHTML = '';
-    return;
-  }
-
-  document.getElementById('summary-cards').innerHTML = Object.entries(bySubject).map(([subj, reps]) => {
-    const scores = reps.filter(r=>r.score!==null&&r.score!==undefined).map(r=>r.score);
-    const avg    = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-    // Trend: avg of latest 3 vs prev 3
-    const l3 = scores.slice(0,3);
-    const p3 = scores.slice(3,6);
-    const trend = l3.length && p3.length
-      ? Math.round(l3.reduce((a,b)=>a+b,0)/l3.length - p3.reduce((a,b)=>a+b,0)/p3.length)
-      : null;
-    const cls = avg===null?'progress-sage':avg>=80?'progress-green':avg>=65?'progress-yellow':'progress-red';
-    return `<div class="card card-sm">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:24px">${SUBJECT_ICONS[subj]||'📚'}</span>
-          <div><div style="font-weight:700;font-size:13px;color:var(--sage-900)">${subj}</div><div style="font-size:11px;color:var(--sage-400)">${reps.length} sesi</div></div>
-        </div>
-        ${trend!==null ? `<span class="badge ${trend>=0?'badge-green':'badge-red'}">${trend>=0?'↑':'↓'} ${Math.abs(trend)}</span>` : ''}
-      </div>
-      ${avg!==null ? `
-        <div style="display:flex;align-items:flex-end;gap:4px;margin-bottom:6px">
-          <span style="font-family:var(--font-display);font-size:32px;font-weight:700;color:var(--sage-900);line-height:1">${avg}</span>
-          <span style="font-size:11px;color:var(--sage-400);margin-bottom:4px">rata-rata</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${avg}%"></div></div>` :
-        '<p style="font-size:12px;color:var(--sage-400)">Belum ada nilai</p>'
-      }
-    </div>`;
-  }).join('');
-}
+let activeSubject = 'all';
 
 function renderReports() {
-  const filtered = activeSubj ? allReports.filter(r=>r.subject===activeSubj) : allReports;
-  const wrap = document.getElementById('reports-wrap');
+  const filtered = activeSubject === 'all' ? allReports : allReports.filter(r => r.subject === activeSubject);
+  const el = document.getElementById('reports-list');
   if (!filtered.length) {
-    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan untuk program ini</p></div>';
     return;
   }
-  wrap.innerHTML = filtered.map(r => {
-    const sc   = scoreClass(r.score);
-    const imgs = (r.media_urls||[]).map((u,i) =>
-      `<img src="${u}" onclick="openLB('${u}')" style="width:64px;height:50px;object-fit:cover;border-radius:8px;border:1px solid var(--sage-100);cursor:pointer"/>`
+  el.innerHTML = filtered.map(r => {
+    const sc = scoreClass(r.score);
+    const imgs = (r.media_urls||[]).slice(0,3).map(u =>
+      `<img src="${u}" style="width:56px;height:44px;object-fit:cover;border-radius:10px;border:2px solid var(--neutral-100);cursor:pointer" onclick="window.open('${u}')"/>`
     ).join('');
     return `<div class="report-card">
-      <div class="report-score ${sc}">${r.score!==null&&r.score!==undefined ? r.score : (SUBJECT_ICONS[r.subject]||'📚')}</div>
+      <div class="report-score ${sc}">${r.score!=null ? r.score : (SUBJECT_ICONS[r.subject]||'📚')}</div>
       <div class="report-body">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:6px">
-          <div class="report-title">${r.title}</div>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            <span class="badge badge-sage">${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject}</span>
-            <span style="font-size:12px;color:var(--sage-400)">${formatDate(r.session_date)}</span>
-          </div>
-        </div>
-        <div class="report-desc" style="-webkit-line-clamp:unset;display:block">${r.description}</div>
+        <div class="report-title">${r.title}</div>
+        <div class="report-meta">${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}</div>
+        <div class="report-desc">${r.description}</div>
         ${imgs ? `<div class="report-images" style="margin-top:8px">${imgs}</div>` : ''}
+        ${r.teacher_note ? `<div style="background:var(--sky-50);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--sky-700);font-weight:600">💬 ${r.teacher_note}</div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
+renderReports();
 
-document.getElementById('subj-filter').addEventListener('click', e => {
-  const tab = e.target.closest('.filter-tab');
-  if (!tab) return;
-  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
-  tab.classList.add('active');
-  activeSubj = tab.dataset.subj;
-  renderReports();
+document.querySelectorAll('.filter-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeSubject = tab.dataset.subject;
+    renderReports();
+  });
 });
 
-window.openLB = openLightbox;
 window.doLogout    = async () => { await signOut(auth); window.location.href = '../admin/login.html'; };
 window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
 window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
-
-loadReports();
 </script>
 </body>
 </html>
