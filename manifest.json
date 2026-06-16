@@ -1,0 +1,18 @@
+{
+  "name": "Les Anisa — Calistung",
+  "short_name": "Les Anisa",
+  "description": "Pantau perkembangan calistung si kecil kapan saja",
+  "start_url": "/parent/dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "categories": ["education", "kids"],
+  "lang": "id"
+}
