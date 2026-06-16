@@ -1,32 +1,46 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard Orang Tua — Les Anisa</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Dashboard — Les Anisa</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0ea5e9"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Les Anisa"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
   <link rel="stylesheet" href="../assets/css/style.css"/>
   <link rel="stylesheet" href="../assets/css/dashboard.css"/>
   <style>
-    .parent-sidebar { background: white; }
-    .prog-bar-wrap { margin-bottom: 14px; }
-    .prog-bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
-    .att-dot { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; cursor: default; }
-    .att-dot.hadir { background:#dcfce7;color:#16a34a; }
-    .att-dot.izin  { background:#fef9c3;color:#ca8a04; }
-    .att-dot.sakit { background:#dbeafe;color:#2563eb; }
-    .att-dot.alpha { background:#fee2e2;color:#dc2626; }
+    .prog-subject-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; padding: 16px; }
+    .prog-subject-card { background: var(--neutral-50); border-radius: var(--radius-lg); padding: 16px; border: 2px solid var(--neutral-100); }
+    .prog-subject-icon { font-size: 30px; margin-bottom: 10px; }
+    .prog-subject-name { font-family: var(--font-display); font-size: 15px; color: var(--neutral-900); margin-bottom: 4px; }
+    .prog-subject-count { font-size: 12px; color: var(--neutral-400); font-weight: 600; margin-bottom: 10px; }
+    .prog-subject-avg { font-family: var(--font-display); font-size: 32px; font-weight: 700; color: var(--neutral-900); line-height: 1; margin-bottom: 6px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:700px) { .two-col { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 <div class="dash-wrapper">
-  <!-- Sidebar -->
+
+  <!-- Sidebar overlay -->
   <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
-  <aside class="sidebar parent-sidebar" id="sidebar">
+
+  <!-- Desktop Sidebar -->
+  <aside class="sidebar" id="sidebar">
     <a href="dashboard.html" class="sidebar-logo">
       <div class="sidebar-logo-icon">📚</div>
-      <div><div class="sidebar-logo-text">Les Anisa</div><div class="sidebar-logo-sub">Portal Orang Tua</div></div>
+      <div>
+        <div class="sidebar-logo-text">Les Anisa</div>
+        <div class="sidebar-logo-sub">Portal Orang Tua</div>
+      </div>
     </a>
     <div class="sidebar-user">
-      <div class="avatar" id="sb-avatar">O</div>
+      <div class="avatar" id="sb-avatar" style="background:linear-gradient(135deg,var(--sky-200),var(--purple-100));color:var(--sky-700);font-weight:800">O</div>
       <div class="sidebar-user-info">
         <div class="sidebar-user-name" id="sb-name">Orang Tua</div>
         <div class="sidebar-user-role">Wali Murid</div>
@@ -34,7 +48,7 @@
     </div>
     <nav class="sidebar-nav">
       <a href="dashboard.html"  class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
-      <a href="progress.html"   class="nav-item"><span class="nav-icon">📋</span> Perkembangan</a>
+      <a href="progress.html"   class="nav-item"><span class="nav-icon">📈</span> Perkembangan</a>
       <a href="attendance.html" class="nav-item"><span class="nav-icon">📅</span> Kehadiran</a>
     </nav>
     <div class="sidebar-footer">
@@ -45,50 +59,80 @@
 
   <!-- Main -->
   <div class="dash-main">
+
+    <!-- Mobile Topbar -->
     <div class="dash-topbar">
-      <button onclick="openSidebar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--sage-700)">☰</button>
-      <span style="font-family:var(--font-display);font-weight:700;color:var(--sage-900)">Les Anisa</span>
-      <button onclick="doLogout()" style="background:none;border:none;font-size:20px;cursor:pointer">🚪</button>
+      <button class="topbar-icon-btn" onclick="openSidebar()" aria-label="Menu">☰</button>
+      <div class="topbar-logo">
+        <div class="topbar-logo-icon">📚</div>
+        <span class="topbar-logo-text">Les Anisa</span>
+      </div>
+      <button class="topbar-icon-btn" onclick="doLogout()" aria-label="Keluar">🚪</button>
     </div>
+
     <div class="dash-content">
+
+      <!-- Greeting -->
       <div class="page-header">
         <h1 class="page-title" id="greeting">Halo! 👋</h1>
         <p class="page-sub">Pantau perkembangan calistung si kecil</p>
       </div>
 
-      <!-- Child card -->
-      <div id="child-cards" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px"></div>
+      <!-- Child Profile Card -->
+      <div id="child-profile-area"></div>
 
       <!-- Stats -->
-      <div class="stats-grid" style="margin-bottom:24px">
-        <div class="stat-card stat-sage"><div class="stat-icon">📋</div><div class="stat-value" id="st-sessions">–</div><div class="stat-label">Total Sesi</div><div class="stat-sub">Semua program</div></div>
-        <div class="stat-card stat-blue"><div class="stat-icon">📊</div><div class="stat-value" id="st-avg">–</div><div class="stat-label">Rata-rata Nilai</div><div class="stat-sub">Sesi terakhir</div></div>
-        <div class="stat-card stat-amber"><div class="stat-icon">📅</div><div class="stat-value" id="st-att">–%</div><div class="stat-label">Kehadiran</div><div class="stat-sub">10 sesi terakhir</div></div>
-        <div class="stat-card stat-terra"><div class="stat-icon">🎯</div><div class="stat-value" id="st-prog">–</div><div class="stat-label">Program Aktif</div><div class="stat-sub">Calistung</div></div>
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card stat-sky">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value" id="st-sessions">–</div>
+          <div class="stat-label">Total Sesi</div>
+          <div class="stat-sub">Semua program</div>
+        </div>
+        <div class="stat-card stat-amber">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-value" id="st-avg">–</div>
+          <div class="stat-label">Rata-rata Nilai</div>
+          <div class="stat-sub">Semua sesi</div>
+        </div>
+        <div class="stat-card stat-lime">
+          <div class="stat-icon">📅</div>
+          <div class="stat-value" id="st-att">–%</div>
+          <div class="stat-label">Kehadiran</div>
+          <div class="stat-sub">10 sesi terakhir</div>
+        </div>
+        <div class="stat-card stat-coral">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-value" id="st-prog">–</div>
+          <div class="stat-label">Program Aktif</div>
+          <div class="stat-sub">Calistung</div>
+        </div>
       </div>
 
       <!-- Per-program progress -->
-      <div class="section-card" style="margin-bottom:20px">
-        <div class="section-head"><h2>Perkembangan per Program</h2></div>
-        <div id="prog-breakdown" style="padding:16px">
+      <div class="section-card" style="margin-bottom:18px">
+        <div class="section-head">
+          <h2>📊 Perkembangan per Program</h2>
+          <a href="progress.html">Lihat semua →</a>
+        </div>
+        <div id="prog-breakdown" class="prog-subject-grid">
           <div class="empty-state"><div class="spinner mx-auto"></div></div>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <!-- Recent reports -->
+      <!-- Two-col: recent reports + attendance -->
+      <div class="two-col">
         <div class="section-card">
           <div class="section-head">
-            <h2>Laporan Terbaru</h2>
-            <a href="progress.html" style="font-size:13px;color:var(--sage-600);text-decoration:none">Lihat semua</a>
+            <h2>📋 Laporan Terbaru</h2>
+            <a href="progress.html">Semua →</a>
           </div>
           <div id="recent-reports"><div class="empty-state"><div class="spinner mx-auto"></div></div></div>
         </div>
-        <!-- Recent attendance -->
         <div class="section-card">
           <div class="section-head">
-            <h2>Kehadiran Terakhir</h2>
-            <a href="attendance.html" style="font-size:13px;color:var(--sage-600);text-decoration:none">Lihat semua</a>
+            <h2>📅 Kehadiran</h2>
+            <a href="attendance.html">Semua →</a>
           </div>
           <div id="recent-att" style="padding:16px"><div class="empty-state"><div class="spinner mx-auto"></div></div></div>
         </div>
@@ -96,58 +140,91 @@
     </div>
   </div>
 </div>
-<div id="toast-container"></div>
 
+<!-- Bottom Nav (Mobile) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="dashboard.html" class="bnav-item active">
+      <div class="bnav-icon">🏠</div>
+      <span class="bnav-label">Beranda</span>
+    </a>
+    <a href="progress.html" class="bnav-item">
+      <div class="bnav-icon">📈</div>
+      <span class="bnav-label">Nilai</span>
+    </a>
+    <a href="attendance.html" class="bnav-item">
+      <div class="bnav-icon">📅</div>
+      <span class="bnav-label">Hadir</span>
+    </a>
+    <a href="../index.html" class="bnav-item">
+      <div class="bnav-icon">🌐</div>
+      <span class="bnav-label">Website</span>
+    </a>
+  </div>
+</nav>
+
+<!-- PWA Install Banner -->
+<div id="pwa-banner" class="pwa-banner" style="display:none">
+  <div class="pwa-banner-icon">📲</div>
+  <div class="pwa-banner-text">
+    <div class="pwa-banner-title">Install App Les Anisa</div>
+    <div class="pwa-banner-sub">Pantau si kecil langsung dari layar HP!</div>
+  </div>
+  <div class="pwa-banner-actions">
+    <button class="pwa-install-btn" onclick="triggerPWAInstall()">Install</button>
+    <button class="pwa-dismiss-btn" onclick="hidePWABanner()">✕</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../assets/js/pwa.js"></script>
 <script type="module">
 import { db, auth, collection, getDocs, query, where, orderBy, limit, onAuthStateChanged, signOut, doc, getDoc }
   from '../assets/js/firebase-config.js';
 import { requireAuth, toast, formatDate, avatarInitial, scoreClass, SUBJECT_ICONS, ATT_STATUS } from '../assets/js/utils.js';
 
-// ── Auth ────────────────────────────────────────────────────────────────
 const user = await requireAuth(auth, onAuthStateChanged, '../admin/login.html');
 const snap  = await getDoc(doc(db,'users',user.uid));
 const userName = snap.data()?.name || user.email?.split('@')[0] || 'Bunda/Ayah';
 const firstName = userName.split(' ')[0];
 
-document.getElementById('greeting').textContent = `Halo, ${firstName}! 👋`;
-document.getElementById('sb-name').textContent  = userName;
+const hour = new Date().getHours();
+const greeting = hour < 11 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
+document.getElementById('greeting').textContent = `${greeting}, ${firstName}! 👋`;
+document.getElementById('sb-name').textContent = userName;
 document.getElementById('sb-avatar').textContent = avatarInitial(userName);
 
-// ── Load student(s) for this parent ─────────────────────────────────────
+// Load student(s)
 const stuSnap = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
 const students = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
 
-// Render child cards
-const childEl = document.getElementById('child-cards');
-if (students.length === 0) {
-  childEl.innerHTML = `<div class="card" style="color:var(--sage-400);font-size:14px">Data murid belum tersedia. Hubungi admin.</div>`;
-} else {
-  childEl.innerHTML = students.map(s => `
-    <div class="card card-sm" style="display:flex;align-items:center;gap:12px;flex:0 0 auto">
-      ${s.photo_url ? `<img src="${s.photo_url}" class="avatar" style="border-radius:50%"/>` : `<div class="avatar">${avatarInitial(s.name)}</div>`}
-      <div>
-        <div style="font-weight:700;font-size:14px;color:var(--sage-900)">${s.name}</div>
-        <div style="font-size:12px;color:var(--sage-400)">${s.grade||''}</div>
-        <div style="margin-top:4px">${(s.subjects||[]).map(sub=>`<span title="${sub}" style="font-size:16px">${SUBJECT_ICONS[sub]||'📚'}</span>`).join(' ')}</div>
+// Render child profile
+const profileEl = document.getElementById('child-profile-area');
+if (students.length > 0) {
+  const s = students[0];
+  profileEl.innerHTML = `<div class="child-profile-card">
+    <div class="child-profile-avatar">${s.photo_url ? `<img src="${s.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:16px"/>` : avatarInitial(s.name)}</div>
+    <div>
+      <div class="child-profile-name">${s.name}</div>
+      <div class="child-profile-grade">${s.grade || ''}</div>
+      <div class="child-profile-tags">
+        ${(s.subjects||[]).map(sub => `<span class="child-profile-tag">${SUBJECT_ICONS[sub]||'📚'} ${sub}</span>`).join('')}
+        <span class="child-profile-tag" style="background:rgba(255,255,255,.35)">${s.is_active !== false ? '✅ Aktif' : '⏸ Nonaktif'}</span>
       </div>
-      <div style="width:8px;height:8px;border-radius:50%;background:${s.is_active!==false?'#22c55e':'#d1d5db'};margin-left:4px"></div>
-    </div>`).join('');
+    </div>
+  </div>`;
+} else {
+  profileEl.innerHTML = `<div class="section-card" style="padding:16px;margin-bottom:18px;color:var(--neutral-400);font-size:14px;font-weight:600">⚠️ Data murid belum tersedia. Hubungi admin.</div>`;
 }
 
 const studentIds = students.map(s => s.id);
 if (!studentIds.length) return;
 
-// ── Load reports ─────────────────────────────────────────────────────────
-const repSnap = await getDocs(query(
-  collection(db,'progress_reports'),
-  where('student_id','in', studentIds),
-  orderBy('session_date','desc'),
-  limit(20)
-));
+// Reports
+const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc'), limit(20)));
 const reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
 
-// Stats
-const scores = reports.filter(r => r.score !== null && r.score !== undefined).map(r => r.score);
+const scores = reports.filter(r => r.score!=null).map(r => r.score);
 const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
 document.getElementById('st-sessions').textContent = reports.length;
 document.getElementById('st-avg').textContent = avg !== null ? avg : '–';
@@ -155,92 +232,72 @@ document.getElementById('st-prog').textContent = students[0]?.subjects?.length |
 
 // Per-program breakdown
 const bySubject = {};
-reports.forEach(r => {
-  if (!bySubject[r.subject]) bySubject[r.subject] = [];
-  bySubject[r.subject].push(r);
-});
-
+reports.forEach(r => { if (!bySubject[r.subject]) bySubject[r.subject] = []; bySubject[r.subject].push(r); });
 const pbEl = document.getElementById('prog-breakdown');
 if (!Object.keys(bySubject).length) {
-  pbEl.innerHTML = '<div class="empty-state"><p>Belum ada sesi belajar tercatat</p></div>';
+  pbEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada sesi belajar</p></div>';
 } else {
-  pbEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">` +
-    Object.entries(bySubject).map(([subj, reps]) => {
-      const sc = reps.filter(r=>r.score!==null&&r.score!==undefined).map(r=>r.score);
-      const avg = sc.length ? Math.round(sc.reduce((a,b)=>a+b,0)/sc.length) : null;
-      const cls = avg === null ? 'progress-sage' : avg>=80?'progress-green':avg>=65?'progress-yellow':'progress-red';
-      const latest = reps[0];
-      return `<div class="card card-sm">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <span style="font-size:28px">${SUBJECT_ICONS[subj]||'📚'}</span>
-          <div>
-            <div style="font-weight:700;font-size:14px;color:var(--sage-900)">${subj}</div>
-            <div style="font-size:11px;color:var(--sage-400)">${reps.length} sesi</div>
-          </div>
-        </div>
-        ${avg!==null ? `
-          <div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px">
-            <span style="font-family:var(--font-display);font-size:30px;font-weight:700;color:var(--sage-900);line-height:1">${avg}</span>
-            <span style="font-size:11px;color:var(--sage-400);margin-bottom:4px">rata-rata</span>
-          </div>
-          <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${avg}%"></div></div>
-        ` : '<p style="font-size:12px;color:var(--sage-400)">Belum ada nilai</p>'}
-        ${latest ? `<p style="font-size:11px;color:var(--sage-400);margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Terakhir: ${latest.title}</p>` : ''}
-      </div>`;
-    }).join('') + '</div>';
+  pbEl.innerHTML = Object.entries(bySubject).map(([subj, reps]) => {
+    const sc = reps.filter(r=>r.score!=null).map(r=>r.score);
+    const avg = sc.length ? Math.round(sc.reduce((a,b)=>a+b,0)/sc.length) : null;
+    const cls = avg===null?'progress-sage':avg>=80?'progress-green':avg>=65?'progress-sun':'progress-coral';
+    const latest = reps[0];
+    return `<div class="prog-subject-card">
+      <div class="prog-subject-icon">${SUBJECT_ICONS[subj]||'📚'}</div>
+      <div class="prog-subject-name">${subj}</div>
+      <div class="prog-subject-count">${reps.length} sesi</div>
+      ${avg!==null ? `<div class="prog-subject-avg">${avg}</div><div class="progress-bar"><div class="progress-fill ${cls}" style="width:${avg}%"></div></div>` : '<p style="font-size:12px;color:var(--neutral-400);font-weight:600">Belum ada nilai</p>'}
+      ${latest ? `<p style="font-size:11px;color:var(--neutral-400);margin-top:8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Terakhir: ${latest.title}</p>` : ''}
+    </div>`;
+  }).join('');
 }
 
-// Recent reports (latest 5)
+// Recent reports
 const repEl = document.getElementById('recent-reports');
-const latest5 = reports.slice(0, 5);
+const latest5 = reports.slice(0,5);
 if (!latest5.length) {
   repEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
 } else {
   repEl.innerHTML = latest5.map(r => {
     const sc = scoreClass(r.score);
-    const imgs = (r.media_urls||[]).slice(0,2).map(u =>
-      `<img src="${u}" style="width:48px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--sage-100);cursor:pointer" onclick="window.open('${u}')"/>`
-    ).join('');
     return `<div class="report-card">
-      <div class="report-score ${sc}">${r.score!==null&&r.score!==undefined ? r.score : (SUBJECT_ICONS[r.subject]||'📚')}</div>
+      <div class="report-score ${sc}">${r.score!=null ? r.score : (SUBJECT_ICONS[r.subject]||'📚')}</div>
       <div class="report-body">
         <div class="report-title">${r.title}</div>
         <div class="report-meta">${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}</div>
         <div class="report-desc">${r.description}</div>
-        ${imgs ? `<div class="report-images" style="margin-top:6px">${imgs}</div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
-// ── Load attendance ──────────────────────────────────────────────────────
-const attSnap = await getDocs(query(
-  collection(db,'attendance'),
-  where('student_id','in', studentIds),
-  orderBy('date','desc'),
-  limit(10)
-));
+// Attendance
+const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc'), limit(12)));
 const atts = attSnap.docs.map(d => d.data());
-const hadir = atts.filter(a => a.status==='hadir').length;
-const rate  = atts.length ? Math.round(hadir/atts.length*100) : 0;
+const hadir = atts.filter(a=>a.status==='hadir').length;
+const rate = atts.length ? Math.round(hadir/atts.length*100) : 0;
 document.getElementById('st-att').textContent = `${rate}%`;
 
 const attEl = document.getElementById('recent-att');
 if (!atts.length) {
   attEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data</p></div>';
 } else {
+  const statusColors = { hadir:'#dcfce7', izin:'#fef9c3', sakit:'#dbeafe', alpha:'#fee2e2' };
+  const statusEmojis = { hadir:'✅', izin:'📝', sakit:'🤒', alpha:'❌' };
   attEl.innerHTML = `
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
       ${atts.map(a => {
         const d = new Date(a.date);
-        const info = ATT_STATUS[a.status];
-        return `<div class="att-dot ${a.status}" title="${a.date} — ${info?.label}">${d.getDate()}</div>`;
+        return `<div class="att-dot ${a.status}" title="${a.date} — ${ATT_STATUS?.[a.status]?.label || a.status}">${d.getDate()}</div>`;
       }).join('')}
     </div>
-    <p style="font-size:13px;color:var(--sage-500)">Kehadiran: <strong style="color:var(--sage-800)">${rate}%</strong> (${hadir}/${atts.length} sesi)</p>`;
+    <div style="background:var(--neutral-50);border-radius:var(--radius-md);padding:10px 12px;">
+      <p style="font-size:13px;color:var(--neutral-700);font-weight:700">Kehadiran: <span style="color:var(--lime-600)">${rate}%</span></p>
+      <p style="font-size:12px;color:var(--neutral-400);font-weight:600">${hadir} hadir dari ${atts.length} sesi</p>
+    </div>`;
 }
 
-// ── Sidebar & logout ────────────────────────────────────────────────────
+// Sidebar & nav
 window.doLogout    = async () => { await signOut(auth); window.location.href = '../admin/login.html'; };
 window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
 window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
