@@ -908,7 +908,7 @@ function renderTestiSettingsHTML() {
         <h2>💬 Testimoni (Foto Carousel)</h2><span id="sga-testimonials" style="color:var(--neutral-400);font-size:18px">▾</span>
       </div>
       <div id="sg-testimonials" style="padding:16px 20px">
-        <p style="font-size:13px;color:var(--neutral-500);font-weight:600;margin-bottom:14px">Maksimal ${TESTI_MAX} testimoni. Upload screenshot chat WhatsApp orang tua sebagai bukti testimoni, lalu isi nama orang tua — tampil sebagai carousel foto di landing page.</p>
+        <p style="font-size:13px;color:var(--neutral-500);font-weight:600;margin-bottom:14px">Maksimal ${TESTI_MAX} testimoni. Upload screenshot chat WhatsApp orang tua sebagai bukti testimoni, lalu isi nama orang tua — tampil sebagai galeri foto (3 kolom) di landing page.</p>
         <div id="testi-admin-list" style="display:flex;flex-direction:column;gap:14px">${renderTestiCardsHTML()}</div>
         <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="addTestiItem()" ${testiSettingsData.length>=TESTI_MAX?'disabled':''}>➕ Tambah Testimoni ${testiSettingsData.length>=TESTI_MAX?'(Maksimal tercapai)':''}</button>
       </div>
@@ -921,17 +921,16 @@ function renderTestiCardsHTML() {
     <div class="section-card" style="border:2px solid var(--neutral-100)">
       <div style="padding:14px 16px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
         <div style="flex-shrink:0;text-align:center">
-          <div style="width:84px;height:108px;border-radius:14px;overflow:hidden;background:var(--neutral-100);display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:6px" id="testi-photo-prev-${i}">
-            ${t.photo_url?`<img src="${t.photo_url}" style="width:100%;height:100%;object-fit:cover;object-position:top"/>`:`<span>${t.emoji||'👤'}</span>`}
+          <div style="width:90px;height:90px;border-radius:10px;overflow:hidden;background:var(--neutral-100);display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:6px" id="testi-photo-prev-${i}">
+            ${t.photo_url?`<img src="${t.photo_url}" style="width:100%;height:100%;object-fit:cover"/>`:`<span>${t.emoji||'👤'}</span>`}
           </div>
           <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--sky-600);cursor:pointer;background:var(--sky-50);border:2px solid var(--sky-200);padding:4px 8px;border-radius:8px">
-            <input type="file" accept="image/*" style="display:none" onchange="uploadTestiPhoto(${i},this)"/> 📤 Screenshot
+            <input type="file" accept="image/*" style="display:none" onchange="uploadTestiPhoto(${i},this)"/> 📤 Foto
           </label>
           <div id="testi-photo-status-${i}" style="font-size:10px;color:var(--neutral-400);margin-top:2px"></div>
         </div>
         <div style="flex:1;min-width:220px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:center">
-          <input type="text" class="form-input" placeholder="Nama orang tua" value="${t.name||''}" oninput="updateTestiField(${i},'name',this.value)"/>
-          <input type="text" class="form-input" placeholder="Role (opsional, cth: Orang tua Nayla)" value="${t.role||''}" oninput="updateTestiField(${i},'role',this.value)"/>
+          <input type="text" class="form-input" style="grid-column:1/-1" placeholder="Nama orang tua (cth: Bu Rina)" value="${t.name||''}" oninput="updateTestiField(${i},'name',this.value)"/>
           <input type="text" class="form-input" style="grid-column:1/-1" placeholder="Emoji fallback bila belum ada foto (cth: 👩)" value="${t.emoji||''}" oninput="updateTestiField(${i},'emoji',this.value)"/>
         </div>
         <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;flex-shrink:0" onclick="removeTestiItem(${i})">🗑 Hapus</button>
