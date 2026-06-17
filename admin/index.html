@@ -741,56 +741,85 @@ window.updateEnrollStatus=async function(id,status){
       };
       const studentRef=await addDoc(collection(db,'students'),studentData);
 
-      // 3. Create parent account in Firebase Auth via REST API (createUser)
-      //    We use Firebase Auth REST API so we don't switch the admin's session
+      // 3. Create parent account in Firebase Auth via REST API
+      //    Pakai password acak kuat — ortu set password sendiri via reset email
       let parentUid=null;
+      let emailSent=false;
       if(e.parent_email){
         try{
           const {FIREBASE_CONFIG} = await import('../assets/js/firebase-config.js');
           const apiKey=FIREBASE_CONFIG.apiKey;
-          // Default password = phone number (orang tua wajib ganti sendiri)
-          const tempPass=e.parent_phone.replace(/\D/g,'').slice(-8)||'lesanisa123';
+
+          // Generate random strong temp password (tidak perlu diketahui ortu)
+          const tempPass='LA_'+Math.random().toString(36).slice(2,10)+'!'+Date.now().toString(36);
+
+          // Buat akun Firebase Auth
           const res=await fetch(
             `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
             {method:'POST',headers:{'Content-Type':'application/json'},
-             body:JSON.stringify({email:e.parent_email,password:tempPass,returnSecureToken:true})}
+             body:JSON.stringify({email:e.parent_email,password:tempPass,returnSecureToken:false})}
           );
           const data=await res.json();
+
           if(data.localId){
             parentUid=data.localId;
-            // 4. Save user doc with role=parent
+            // Simpan user doc role=parent
             await setDoc(doc(db,'users',parentUid),{
-              name:     e.parent_name,
-              email:    e.parent_email,
-              phone:    e.parent_phone,
-              role:     'parent',
+              name:       e.parent_name,
+              email:      e.parent_email,
+              phone:      e.parent_phone,
+              role:       'parent',
               student_id: studentRef.id,
               created_at: serverTimestamp(),
             });
-          } else {
-            // Email mungkin sudah terdaftar — cari user doc by email
+            // Kirim password reset email — ortu set password sendiri
+            const resetRes=await fetch(
+              `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
+              {method:'POST',headers:{'Content-Type':'application/json'},
+               body:JSON.stringify({
+                 requestType:'PASSWORD_RESET',
+                 email:e.parent_email,
+                 continueUrl:`${location.origin}/login/`,
+               })}
+            );
+            const resetData=await resetRes.json();
+            emailSent=!!resetData.email;
+          } else if(data.error?.message==='EMAIL_EXISTS'){
+            // Akun sudah ada — cukup kirim reset password email lagi
             const existSnap=await getDocs(query(collection(db,'users'),where('email','==',e.parent_email)));
             if(!existSnap.empty) parentUid=existSnap.docs[0].id;
+            await fetch(
+              `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`,
+              {method:'POST',headers:{'Content-Type':'application/json'},
+               body:JSON.stringify({
+                 requestType:'PASSWORD_RESET',
+                 email:e.parent_email,
+                 continueUrl:`${location.origin}/login/`,
+               })}
+            );
+            emailSent=true;
           }
         }catch(authErr){ console.warn('Auth create skipped:',authErr); }
       }
 
-      // 5. Link student_id & parent_uid back to enrollment
+      // 4. Link student_id & parent_uid back ke enrollment
       await updateDoc(enrollRef,{
         student_id: studentRef.id,
         parent_uid: parentUid||null,
       });
 
-      // 6. Build notification info
-      const tempPass2=e.parent_phone?e.parent_phone.replace(/\D/g,'').slice(-8):'lesanisa123';
+      // 5. Build WA notification
       const loginUrl=`${location.origin}/login/`;
-      const waMsg=`Halo ${e.parent_name}! 🎉 Selamat, *${e.student_name}* resmi diterima di *Les Anisa*!\n\n📚 Jadwal: *${e.preferred_schedule||'-'}*\n\n🔐 Login Portal Orang Tua:\n👉 ${loginUrl}\n📧 Email: ${e.parent_email}\n🔑 Password sementara: *${tempPass2}*\n\n_Harap segera ganti password setelah login pertama ya!_ 😊`;
+      const emailInfo=e.parent_email
+        ? `\n\n🔐 *Login Portal Orang Tua:*\n👉 ${loginUrl}\n📧 Email: ${e.parent_email}\n\n📨 *Cek email ${e.parent_email}* untuk set password — klik link yang sudah kami kirimkan${emailSent?' ✅':' (cek folder spam juga ya)'}`
+        : '';
+      const waMsg=`Halo ${e.parent_name}! 🎉\n\nSelamat, *${e.student_name}* resmi diterima di *Les Anisa*! 📚\n\n⏰ Jadwal: *${e.preferred_schedule||'-'}*${emailInfo}\n\nSampai jumpa di kelas! 👋`;
       const waLink=`https://wa.me/${(e.parent_phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(waMsg)}`;
 
       toast('✅ Murid berhasil ditambahkan!','success');
-      // Show popup with WA link & credentials
       setTimeout(()=>{
-        if(confirm(`✅ Murid "${e.student_name}" berhasil dibuat!\n\nKirim info login ke orang tua via WhatsApp?`)){
+        const emailNote=emailSent?'\n📨 Email set-password sudah dikirim ke orang tua!':'\n⚠️ Email tidak terkirim, pastikan email valid.';
+        if(confirm(`✅ Murid "${e.student_name}" berhasil dibuat!${emailNote}\n\nKirim notifikasi ke orang tua via WhatsApp?`)){
           window.open(waLink,'_blank');
         }
       },300);
@@ -876,3 +905,4 @@ navigate(initPage);
 </script>
 </body>
 </html>
+
