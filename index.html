@@ -325,59 +325,70 @@
     #testimoni { background: var(--neutral-50); }
     .testi-wrap { max-width: 1120px; margin: 0 auto; }
 
-    .testi-carousel { position: relative; margin-top: 44px; }
-    .testi-track-wrap { overflow: hidden; border-radius: var(--radius-2xl); }
-    .testi-track { display: flex; transition: transform .45s cubic-bezier(.4,0,.2,1); }
-    .testi-slide { flex: 0 0 100%; min-width: 0; padding: 4px; }
+    .testi-carousel { position: relative; margin-top: 44px; padding: 0 50px; }
+    .testi-track-wrap { overflow: hidden; }
+    .testi-track { display: flex; transition: transform .45s cubic-bezier(.4,0,.2,1); gap: 18px; }
+    .testi-slide { flex: 0 0 calc((100% - 18px*2)/3); min-width: 0; }
+    @media(max-width:860px){ .testi-slide { flex: 0 0 calc((100% - 18px)/2); } }
+    @media(max-width:560px){ .testi-slide { flex: 0 0 100%; } }
 
     .testi-photo-card {
-      background: white; border-radius: var(--radius-2xl);
+      background: white; border-radius: var(--radius-xl);
       border: 2px solid var(--neutral-100); overflow: hidden;
-      display: grid; grid-template-columns: 1fr 1fr; min-height: 380px;
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-sm); transition: box-shadow .2s, transform .2s;
     }
-    .testi-photo-box { position: relative; background: var(--neutral-100); overflow: hidden; }
-    .testi-photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .testi-photo-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .testi-photo-box {
+      position: relative; background: var(--neutral-100); overflow: hidden;
+      width: 100%; max-width: 260px; aspect-ratio: 9/14; margin: 0 auto; cursor: zoom-in;
+    }
+    .testi-photo-box img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
     .testi-photo-fallback {
       width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-      font-size: 64px; background: linear-gradient(135deg, var(--sky-100), var(--purple-100));
+      font-size: 44px; background: linear-gradient(135deg, var(--sky-100), var(--purple-100));
     }
-    .testi-content-box { padding: 32px; display: flex; flex-direction: column; justify-content: center; }
-    .testi-stars { font-size: 18px; color: var(--sun-400); margin-bottom: 14px; letter-spacing: 2px; }
-    .testi-text { font-size: 16px; color: var(--neutral-700); line-height: 1.75; font-style: italic; margin-bottom: 20px; font-weight: 600; }
-    .testi-author { display: flex; align-items: center; gap: 12px; padding-top: 16px; border-top: 2px solid var(--neutral-100); }
-    .testi-avatar { font-size: 26px; width: 46px; height: 46px; background: var(--sky-100); border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .testi-author {
+      display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+      border-top: 2px solid var(--neutral-100);
+    }
+    .testi-avatar { font-size: 18px; width: 36px; height: 36px; background: var(--sky-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
     .testi-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .testi-name { font-size: 15px; font-weight: 700; color: var(--neutral-900); }
-    .testi-role { font-size: 12px; color: var(--neutral-400); font-weight: 600; }
+    .testi-name { font-size: 13px; font-weight: 700; color: var(--neutral-900); }
+    .testi-role { font-size: 11px; color: var(--neutral-400); font-weight: 600; }
 
     @media(max-width:700px){
-      .testi-photo-card { grid-template-columns: 1fr; min-height: unset; }
-      .testi-photo-box { height: 220px; }
-      .testi-content-box { padding: 22px; }
-      .testi-text { font-size: 14px; }
+      .testi-carousel { padding: 0 8px; }
+      .testi-photo-box { max-width: 220px; }
     }
 
     .testi-nav-btn {
       position: absolute; top: 50%; transform: translateY(-50%);
-      width: 44px; height: 44px; border-radius: 50%;
+      width: 40px; height: 40px; border-radius: 50%;
       background: white; border: 2px solid var(--neutral-100); box-shadow: var(--shadow-md);
       display: flex; align-items: center; justify-content: center;
       font-size: 18px; cursor: pointer; z-index: 10; color: var(--neutral-700);
       transition: background .15s, transform .15s;
     }
     .testi-nav-btn:hover { background: var(--sky-50); transform: translateY(-50%) scale(1.06); }
-    .testi-nav-prev { left: -8px; }
-    .testi-nav-next { right: -8px; }
+    .testi-nav-prev { left: 0; }
+    .testi-nav-next { right: 0; }
     @media(max-width:700px){
-      .testi-nav-btn { width: 38px; height: 38px; font-size: 16px; }
-      .testi-nav-prev { left: 4px; }
-      .testi-nav-next { right: 4px; }
+      .testi-nav-btn { width: 34px; height: 34px; font-size: 15px; }
+      .testi-nav-prev { left: -4px; }
+      .testi-nav-next { right: -4px; }
     }
 
     .testi-dots { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
     .testi-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--neutral-200); border: none; cursor: pointer; padding: 0; transition: all .2s; }
     .testi-dot.active { background: var(--sky-500); width: 24px; border-radius: 5px; }
+
+    .lightbox-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999;
+      display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+      padding: 24px; animation: fadeIn .15s ease-out;
+    }
+    .lightbox-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 14px; object-fit: contain; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     /* ════════════════════════════════════════════
        ENROLLMENT FORM
@@ -1030,18 +1041,14 @@ async function loadTestimonials() {
   document.getElementById('testi-track').innerHTML = testiList.map((t) =>
     `<div class="testi-slide">
       <div class="testi-photo-card">
-        <div class="testi-photo-box">
+        <div class="testi-photo-box" ${t.photo_url ? `onclick="openLightboxImg('${t.photo_url}')"` : ''}>
           ${t.photo_url
-            ? `<img src="${t.photo_url}" alt="Foto ${t.name}" loading="lazy"/>`
+            ? `<img src="${t.photo_url}" alt="Testimoni ${t.name}" loading="lazy"/>`
             : `<div class="testi-photo-fallback">${t.emoji||'👨‍👩‍👧'}</div>`}
         </div>
-        <div class="testi-content-box">
-          <div class="testi-stars">${'★'.repeat(t.rating||5)}</div>
-          <p class="testi-text">"${t.text}"</p>
-          <div class="testi-author">
-            <div class="testi-avatar">${t.avatar_url ? `<img src="${t.avatar_url}" alt="${t.name}"/>` : (t.emoji||'👤')}</div>
-            <div><div class="testi-name">${t.name}</div><div class="testi-role">${t.role}</div></div>
-          </div>
+        <div class="testi-author">
+          <div class="testi-avatar">${t.avatar_url ? `<img src="${t.avatar_url}" alt="${t.name}"/>` : (t.emoji||'👤')}</div>
+          <div><div class="testi-name">${t.name||'Orang Tua Murid'}</div>${t.role?`<div class="testi-role">${t.role}</div>`:''}</div>
         </div>
       </div>
     </div>`
@@ -1052,21 +1059,43 @@ async function loadTestimonials() {
   ).join('');
 
   observeFadeUps();
+  testiRender();
   startTestiAutoplay();
 }
 
+function testiSlidesPerView() {
+  const w = window.innerWidth;
+  if (w <= 560) return 1;
+  if (w <= 860) return 2;
+  return 3;
+}
+function testiMaxIndex() {
+  return Math.max(0, testiList.length - testiSlidesPerView());
+}
 function testiRender() {
-  document.getElementById('testi-track').style.transform = `translateX(-${testiIndex*100}%)`;
+  testiIndex = Math.min(testiIndex, testiMaxIndex());
+  const slideEl = document.querySelector('.testi-slide');
+  const wrap = document.getElementById('testi-track').parentElement;
+  const slideWidth = slideEl ? slideEl.getBoundingClientRect().width + 18 : 0;
+  document.getElementById('testi-track').style.transform = `translateX(-${testiIndex*slideWidth}px)`;
   document.querySelectorAll('.testi-dot').forEach((d,i) => d.classList.toggle('active', i===testiIndex));
 }
 window.testiGoTo = function(i) { testiIndex = i; testiRender(); restartTestiAutoplay(); };
-window.testiNext = function() { testiIndex = (testiIndex+1) % testiList.length; testiRender(); restartTestiAutoplay(); };
-window.testiPrev = function() { testiIndex = (testiIndex-1+testiList.length) % testiList.length; testiRender(); restartTestiAutoplay(); };
+window.testiNext = function() { testiIndex = testiIndex >= testiMaxIndex() ? 0 : testiIndex+1; testiRender(); restartTestiAutoplay(); };
+window.testiPrev = function() { testiIndex = testiIndex <= 0 ? testiMaxIndex() : testiIndex-1; testiRender(); restartTestiAutoplay(); };
 function startTestiAutoplay() {
-  if (testiList.length <= 1) return;
-  testiAutoTimer = setInterval(() => { testiIndex = (testiIndex+1)%testiList.length; testiRender(); }, 5500);
+  if (testiList.length <= testiSlidesPerView()) return;
+  testiAutoTimer = setInterval(() => { testiIndex = testiIndex >= testiMaxIndex() ? 0 : testiIndex+1; testiRender(); }, 4000);
 }
 function restartTestiAutoplay() { clearInterval(testiAutoTimer); startTestiAutoplay(); }
+window.addEventListener('resize', () => testiRender());
+window.openLightboxImg = function(url) {
+  const box = document.createElement('div');
+  box.className = 'lightbox-overlay';
+  box.innerHTML = `<img src="${url}" alt="Testimoni"/>`;
+  box.onclick = () => box.remove();
+  document.body.appendChild(box);
+};
 
 // ── Enrollment ─────────────────────────────────────────────────────────
 window.submitEnrollment = async function(e) {
@@ -1151,17 +1180,17 @@ document.getElementById('footer-year').textContent = new Date().getFullYear();
 
 // ── Defaults ───────────────────────────────────────────────────────────
 const DEFAULT_PROGRAMS = [
-  { icon:'📖', title:'Membaca', subtitle:'sampai lancar membaca buku', description:'Mengajarkan pengenalan huruf, suku kata, kata, hingga membaca kalimat dengan lancar dan percaya diri.', features:['Pengenalan huruf A-Z','Suku kata & kata','Kalimat sederhana','Membaca nyaring'], color:'bg-sage-600', age:'TK - SD Kelas 2' },
+  { icon:'📖', title:'Membaca', subtitle:'Iqra sampai lancar baca', description:'Mengajarkan pengenalan huruf, suku kata, kata, hingga membaca kalimat dengan lancar dan percaya diri.', features:['Pengenalan huruf A-Z','Suku kata & kata','Kalimat sederhana','Membaca nyaring'], color:'bg-sage-600', age:'TK - SD Kelas 2' },
   { icon:'✏️', title:'Menulis', subtitle:'Dari coretan ke tulisan rapi', description:'Melatih motorik halus, cara memegang pensil yang benar, menulis huruf hingga kalimat rapi dan terbaca.', features:['Motorik halus & pegang pensil','Huruf kapital & kecil','Kata & kalimat','Dikte sederhana'], color:'bg-terracotta-500', age:'TK - SD Kelas 3' },
   { icon:'🔢', title:'Berhitung', subtitle:'Angka jadi menyenangkan', description:'Mengenalkan konsep angka dan operasi hitung dasar dengan cara yang menyenangkan dan tidak membosankan.', features:['Mengenal angka 1–100','Penjumlahan & pengurangan','Perkalian & pembagian','Soal cerita sederhana'], color:'bg-amber-500', age:'TK - SD Kelas 6' },
 ];
 const DEFAULT_TESTIS = [
-  { name:'Ibu Rina', role:'Orang tua Nayla (TK B)', text:'Nayla yang tadinya belum bisa baca sama sekali, sekarang sudah bisa baca kalimat dalam 2 bulan! Luar biasa!', emoji:'👩', rating:5, photo_url:'' },
-  { name:'Bapak Dimas', role:'Orang tua Raffa (SD Kelas 1)', text:'Dashboard orang tua sangat membantu, saya bisa pantau perkembangan anak tiap hari dari HP.', emoji:'👨', rating:5, photo_url:'' },
-  { name:'Ibu Sari', role:'Orang tua Aisyah (PAUD)', text:'Kak Anisa tahu cara yang tepat buat anak seusia Aisyah. Belajar sambil bermain, anak jadi happy!', emoji:'👩‍👧', rating:5, photo_url:'' },
-  { name:'Bapak Hendra', role:'Orang tua Bintang (SD Kelas 2)', text:'Si Bintang yang dulu nangis kalau disuruh ngitung, sekarang malah minta soal tambahan!', emoji:'👨‍👦', rating:5, photo_url:'' },
-  { name:'Ibu Dewi', role:'Orang tua Zahra (TK A)', text:'Jadwal fleksibel banget, bisa weekend. Sangat cocok buat kami yang sibuk kerja.', emoji:'👩‍💼', rating:5, photo_url:'' },
-  { name:'Ibu Maya', role:'Orang tua Rafi (SD Kelas 3)', text:'Tulisan Rafi yang dulu jelek, sekarang rapi sekali. Harganya terjangkau, kualitasnya top!', emoji:'👩', rating:5, photo_url:'' },
+  { name:'Ibu Rina', role:'Orang tua Nayla (TK B)', emoji:'👩', photo_url:'' },
+  { name:'Bapak Dimas', role:'Orang tua Raffa (SD Kelas 1)', emoji:'👨', photo_url:'' },
+  { name:'Ibu Sari', role:'Orang tua Aisyah (PAUD)', emoji:'👩‍👧', photo_url:'' },
+  { name:'Bapak Hendra', role:'Orang tua Bintang (SD Kelas 2)', emoji:'👨‍👦', photo_url:'' },
+  { name:'Ibu Dewi', role:'Orang tua Zahra (TK A)', emoji:'👩‍💼', photo_url:'' },
+  { name:'Ibu Maya', role:'Orang tua Rafi (SD Kelas 3)', emoji:'👩', photo_url:'' },
 ];
 
 // ── Init ───────────────────────────────────────────────────────────────
