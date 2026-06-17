@@ -16,7 +16,7 @@
     .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
     .cal-day-header { text-align: center; font-size: 11px; font-weight: 700; color: var(--neutral-400); padding: 6px 0; }
     .cal-day {
-      aspect-ratio: 1; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      aspect-ratio: 1; min-height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
       font-size: 13px; font-weight: 700; color: var(--neutral-300); position: relative;
     }
     .cal-day.has-session { cursor: default; }
@@ -24,6 +24,15 @@
     .cal-day.izin  { background: #fef9c3; color: #a16207; }
     .cal-day.sakit { background: #dbeafe; color: #1d4ed8; }
     .cal-day.alpha { background: #fee2e2; color: #dc2626; }
+    @media(max-width:360px){ .calendar-grid { gap: 3px; } .cal-day { font-size: 12px; min-height: 32px; border-radius: 8px; } }
+    .cal-nav-btn {
+      width: 38px; height: 38px; min-width: 38px; border-radius: 12px;
+      background: var(--neutral-100); border: none; cursor: pointer;
+      font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+      color: var(--neutral-600); transition: background .15s; flex-shrink: 0;
+    }
+    .cal-nav-btn:active { background: var(--neutral-200); }
+    .cal-title-wrap { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
     .att-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
     .att-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--neutral-600); }
     .att-legend-dot { width: 14px; height: 14px; border-radius: 4px; }
@@ -31,7 +40,8 @@
     .att-summary-item { background: white; border: 2px solid var(--neutral-100); border-radius: var(--radius-lg); padding: 12px; text-align: center; }
     .att-summary-num { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1; }
     .att-summary-label { font-size: 11px; color: var(--neutral-400); font-weight: 600; margin-top: 4px; }
-    @media(max-width:480px){ .att-summary-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:560px){ .att-summary-grid { grid-template-columns: repeat(2,1fr); gap: 8px; } }
+    @media(max-width:360px){ .att-summary-num { font-size: 22px; } .att-summary-item { padding: 10px 8px; } }
   </style>
 </head>
 <body>
@@ -80,10 +90,10 @@
       <!-- Calendar -->
       <div class="section-card" style="margin-bottom:18px">
         <div class="section-head">
-          <h2 id="cal-title">📆 Bulan Ini</h2>
-          <div style="display:flex;gap:8px">
-            <button onclick="prevMonth()" class="topbar-icon-btn" style="font-size:14px">‹</button>
-            <button onclick="nextMonth()" class="topbar-icon-btn" style="font-size:14px">›</button>
+          <h2 id="cal-title" style="font-size:14px">📆 Bulan Ini</h2>
+          <div style="display:flex;gap:6px">
+            <button onclick="prevMonth()" class="cal-nav-btn" aria-label="Bulan sebelumnya">‹</button>
+            <button onclick="nextMonth()" class="cal-nav-btn" aria-label="Bulan berikutnya">›</button>
           </div>
         </div>
         <div style="padding:16px">
