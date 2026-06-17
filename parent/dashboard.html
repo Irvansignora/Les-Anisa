@@ -218,7 +218,8 @@ if (students.length > 0) {
 }
 
 const studentIds = students.map(s => s.id);
-if (!studentIds.length) return;
+
+if (studentIds.length) {
 
 // Reports
 const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc'), limit(20)));
@@ -295,6 +296,13 @@ if (!atts.length) {
       <p style="font-size:13px;color:var(--neutral-700);font-weight:700">Kehadiran: <span style="color:var(--lime-600)">${rate}%</span></p>
       <p style="font-size:12px;color:var(--neutral-400);font-weight:600">${hadir} hadir dari ${atts.length} sesi</p>
     </div>`;
+}
+
+} else {
+  // Tidak ada murid terhubung ke akun ini — set state kosong di semua section
+  document.getElementById('prog-breakdown').innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada data murid</p></div>';
+  document.getElementById('recent-reports').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
+  document.getElementById('recent-att').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data</p></div>';
 }
 
 // Sidebar & nav
