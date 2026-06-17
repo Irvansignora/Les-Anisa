@@ -320,29 +320,68 @@
     .portfolio-link:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14,165,233,.45); }
 
     /* ════════════════════════════════════════════
-       TESTIMONIALS
+       TESTIMONIALS — Photo Carousel
     ════════════════════════════════════════════ */
     #testimoni { background: var(--neutral-50); }
     .testi-wrap { max-width: 1120px; margin: 0 auto; }
-    .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 44px; }
-    @media(max-width:860px){ .testi-grid { grid-template-columns: repeat(2,1fr); } }
-    @media(max-width:560px){ .testi-grid { grid-template-columns: 1fr; } }
 
-    .testi-card {
-      background: white; border-radius: var(--radius-xl);
-      border: 2px solid var(--neutral-100); padding: 24px;
-      transition: box-shadow .2s, transform .2s;
+    .testi-carousel { position: relative; margin-top: 44px; }
+    .testi-track-wrap { overflow: hidden; border-radius: var(--radius-2xl); }
+    .testi-track { display: flex; transition: transform .45s cubic-bezier(.4,0,.2,1); }
+    .testi-slide { flex: 0 0 100%; min-width: 0; padding: 4px; }
+
+    .testi-photo-card {
+      background: white; border-radius: var(--radius-2xl);
+      border: 2px solid var(--neutral-100); overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr; min-height: 380px;
+      box-shadow: var(--shadow-md);
     }
-    .testi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-    .testi-stars { font-size: 16px; color: var(--sun-400); margin-bottom: 12px; letter-spacing: 2px; }
-    .testi-text { font-size: 14px; color: var(--neutral-700); line-height: 1.7; font-style: italic; margin-bottom: 18px; font-weight: 600; }
-    .testi-author { display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 2px solid var(--neutral-100); }
-    .testi-avatar { font-size: 26px; width: 42px; height: 42px; background: var(--sky-100); border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .testi-name { font-size: 14px; font-weight: 700; color: var(--neutral-900); }
+    .testi-photo-box { position: relative; background: var(--neutral-100); overflow: hidden; }
+    .testi-photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .testi-photo-fallback {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      font-size: 64px; background: linear-gradient(135deg, var(--sky-100), var(--purple-100));
+    }
+    .testi-content-box { padding: 32px; display: flex; flex-direction: column; justify-content: center; }
+    .testi-stars { font-size: 18px; color: var(--sun-400); margin-bottom: 14px; letter-spacing: 2px; }
+    .testi-text { font-size: 16px; color: var(--neutral-700); line-height: 1.75; font-style: italic; margin-bottom: 20px; font-weight: 600; }
+    .testi-author { display: flex; align-items: center; gap: 12px; padding-top: 16px; border-top: 2px solid var(--neutral-100); }
+    .testi-avatar { font-size: 26px; width: 46px; height: 46px; background: var(--sky-100); border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .testi-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .testi-name { font-size: 15px; font-weight: 700; color: var(--neutral-900); }
     .testi-role { font-size: 12px; color: var(--neutral-400); font-weight: 600; }
+
+    @media(max-width:700px){
+      .testi-photo-card { grid-template-columns: 1fr; min-height: unset; }
+      .testi-photo-box { height: 220px; }
+      .testi-content-box { padding: 22px; }
+      .testi-text { font-size: 14px; }
+    }
+
+    .testi-nav-btn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 44px; height: 44px; border-radius: 50%;
+      background: white; border: 2px solid var(--neutral-100); box-shadow: var(--shadow-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; cursor: pointer; z-index: 10; color: var(--neutral-700);
+      transition: background .15s, transform .15s;
+    }
+    .testi-nav-btn:hover { background: var(--sky-50); transform: translateY(-50%) scale(1.06); }
+    .testi-nav-prev { left: -8px; }
+    .testi-nav-next { right: -8px; }
+    @media(max-width:700px){
+      .testi-nav-btn { width: 38px; height: 38px; font-size: 16px; }
+      .testi-nav-prev { left: 4px; }
+      .testi-nav-next { right: 4px; }
+    }
+
+    .testi-dots { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+    .testi-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--neutral-200); border: none; cursor: pointer; padding: 0; transition: all .2s; }
+    .testi-dot.active { background: var(--sky-500); width: 24px; border-radius: 5px; }
 
     /* ════════════════════════════════════════════
        ENROLLMENT FORM
+
     ════════════════════════════════════════════ */
     #daftar { background: linear-gradient(160deg, #fff9f0 0%, white 100%); }
     .enroll-wrap { max-width: 780px; margin: 0 auto; }
@@ -411,7 +450,7 @@
       <a href="#testimoni">Testimoni</a>
     </div>
     <div class="nav-ctas">
-      <a href="/admin/login/" class="btn btn-secondary btn-sm">Masuk</a>
+      <a href="/login/" class="btn btn-secondary btn-sm">Masuk</a>
       <a href="#daftar" class="btn btn-primary btn-sm">Daftar Sekarang</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Menu">☰</button>
@@ -424,7 +463,7 @@
     <a href="#testimoni" onclick="closeMobile()">Testimoni</a>
     <a href="#daftar"    onclick="closeMobile()">Daftar</a>
     <div style="display:flex;gap:8px;padding:12px 16px;">
-      <a href="/admin/login/" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center">Masuk</a>
+      <a href="/login/" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center">Masuk</a>
       <a href="#daftar" onclick="closeMobile()" class="btn btn-primary btn-sm" style="flex:1;justify-content:center">Daftar</a>
     </div>
   </div>
@@ -703,7 +742,14 @@
       <div class="section-eyebrow">💬 Suara Orang Tua</div>
       <h2 class="section-title">Mereka Udah Buktiin! —<br><span style="color:var(--coral-500)">Anak Makin Pintar & Percaya Diri!</span> ❤️</h2>
     </div>
-    <div class="testi-grid" id="testi-grid"><!-- rendered by JS --></div>
+    <div class="testi-carousel fade-up">
+      <button class="testi-nav-btn testi-nav-prev" onclick="testiPrev()" aria-label="Sebelumnya">‹</button>
+      <div class="testi-track-wrap">
+        <div class="testi-track" id="testi-track"><!-- rendered by JS --></div>
+      </div>
+      <button class="testi-nav-btn testi-nav-next" onclick="testiNext()" aria-label="Berikutnya">›</button>
+      <div class="testi-dots" id="testi-dots"><!-- rendered by JS --></div>
+    </div>
   </div>
 </section>
 
@@ -853,7 +899,7 @@
       <p>© <span id="footer-year"></span> <span id="footer-copy-name">Les Anisa</span>. All rights reserved.</p>
       <div style="display:flex;gap:16px">
         <a href="https://anisa.iranza.com" target="_blank">🔗 Portfolio Kak Anisa</a>
-        <a href="/admin/login/">Login Dashboard →</a>
+        <a href="/login/">Login Dashboard →</a>
       </div>
     </div>
   </div>
@@ -964,7 +1010,11 @@ async function loadPrograms() {
   observeFadeUps();
 }
 
-// ── Render testimonials ────────────────────────────────────────────────
+// ── Render testimonials (photo carousel) ────────────────────────────────
+let testiList = [];
+let testiIndex = 0;
+let testiAutoTimer = null;
+
 async function loadTestimonials() {
   let testis;
   try {
@@ -974,18 +1024,49 @@ async function loadTestimonials() {
   if (!testis) testis = DEFAULT_TESTIS;
   if (typeof testis === 'string') testis = JSON.parse(testis);
 
-  document.getElementById('testi-grid').innerHTML = testis.map((t, i) =>
-    `<div class="testi-card fade-up" style="animation-delay:${i*.07}s">
-      <div class="testi-stars">${'★'.repeat(t.rating||5)}</div>
-      <p class="testi-text">"${t.text}"</p>
-      <div class="testi-author">
-        <div class="testi-avatar">${t.emoji}</div>
-        <div><div class="testi-name">${t.name}</div><div class="testi-role">${t.role}</div></div>
+  testiList = testis;
+  testiIndex = 0;
+
+  document.getElementById('testi-track').innerHTML = testiList.map((t) =>
+    `<div class="testi-slide">
+      <div class="testi-photo-card">
+        <div class="testi-photo-box">
+          ${t.photo_url
+            ? `<img src="${t.photo_url}" alt="Foto ${t.name}" loading="lazy"/>`
+            : `<div class="testi-photo-fallback">${t.emoji||'👨‍👩‍👧'}</div>`}
+        </div>
+        <div class="testi-content-box">
+          <div class="testi-stars">${'★'.repeat(t.rating||5)}</div>
+          <p class="testi-text">"${t.text}"</p>
+          <div class="testi-author">
+            <div class="testi-avatar">${t.avatar_url ? `<img src="${t.avatar_url}" alt="${t.name}"/>` : (t.emoji||'👤')}</div>
+            <div><div class="testi-name">${t.name}</div><div class="testi-role">${t.role}</div></div>
+          </div>
+        </div>
       </div>
     </div>`
   ).join('');
+
+  document.getElementById('testi-dots').innerHTML = testiList.map((_, i) =>
+    `<button class="testi-dot${i===0?' active':''}" onclick="testiGoTo(${i})" aria-label="Slide ${i+1}"></button>`
+  ).join('');
+
   observeFadeUps();
+  startTestiAutoplay();
 }
+
+function testiRender() {
+  document.getElementById('testi-track').style.transform = `translateX(-${testiIndex*100}%)`;
+  document.querySelectorAll('.testi-dot').forEach((d,i) => d.classList.toggle('active', i===testiIndex));
+}
+window.testiGoTo = function(i) { testiIndex = i; testiRender(); restartTestiAutoplay(); };
+window.testiNext = function() { testiIndex = (testiIndex+1) % testiList.length; testiRender(); restartTestiAutoplay(); };
+window.testiPrev = function() { testiIndex = (testiIndex-1+testiList.length) % testiList.length; testiRender(); restartTestiAutoplay(); };
+function startTestiAutoplay() {
+  if (testiList.length <= 1) return;
+  testiAutoTimer = setInterval(() => { testiIndex = (testiIndex+1)%testiList.length; testiRender(); }, 5500);
+}
+function restartTestiAutoplay() { clearInterval(testiAutoTimer); startTestiAutoplay(); }
 
 // ── Enrollment ─────────────────────────────────────────────────────────
 window.submitEnrollment = async function(e) {
@@ -1075,12 +1156,12 @@ const DEFAULT_PROGRAMS = [
   { icon:'🔢', title:'Berhitung', subtitle:'Angka jadi menyenangkan', description:'Mengenalkan konsep angka dan operasi hitung dasar dengan cara yang menyenangkan dan tidak membosankan.', features:['Mengenal angka 1–100','Penjumlahan & pengurangan','Perkalian & pembagian','Soal cerita sederhana'], color:'bg-amber-500', age:'TK - SD Kelas 6' },
 ];
 const DEFAULT_TESTIS = [
-  { name:'Ibu Rina', role:'Orang tua Nayla (TK B)', text:'Nayla yang tadinya belum bisa baca sama sekali, sekarang sudah bisa baca kalimat dalam 2 bulan! Luar biasa!', emoji:'👩', rating:5 },
-  { name:'Bapak Dimas', role:'Orang tua Raffa (SD Kelas 1)', text:'Dashboard orang tua sangat membantu, saya bisa pantau perkembangan anak tiap hari dari HP.', emoji:'👨', rating:5 },
-  { name:'Ibu Sari', role:'Orang tua Aisyah (PAUD)', text:'Kak Anisa tahu cara yang tepat buat anak seusia Aisyah. Belajar sambil bermain, anak jadi happy!', emoji:'👩‍👧', rating:5 },
-  { name:'Bapak Hendra', role:'Orang tua Bintang (SD Kelas 2)', text:'Si Bintang yang dulu nangis kalau disuruh ngitung, sekarang malah minta soal tambahan!', emoji:'👨‍👦', rating:5 },
-  { name:'Ibu Dewi', role:'Orang tua Zahra (TK A)', text:'Jadwal fleksibel banget, bisa weekend. Sangat cocok buat kami yang sibuk kerja.', emoji:'👩‍💼', rating:5 },
-  { name:'Ibu Maya', role:'Orang tua Rafi (SD Kelas 3)', text:'Tulisan Rafi yang dulu jelek, sekarang rapi sekali. Harganya terjangkau, kualitasnya top!', emoji:'👩', rating:5 },
+  { name:'Ibu Rina', role:'Orang tua Nayla (TK B)', text:'Nayla yang tadinya belum bisa baca sama sekali, sekarang sudah bisa baca kalimat dalam 2 bulan! Luar biasa!', emoji:'👩', rating:5, photo_url:'' },
+  { name:'Bapak Dimas', role:'Orang tua Raffa (SD Kelas 1)', text:'Dashboard orang tua sangat membantu, saya bisa pantau perkembangan anak tiap hari dari HP.', emoji:'👨', rating:5, photo_url:'' },
+  { name:'Ibu Sari', role:'Orang tua Aisyah (PAUD)', text:'Kak Anisa tahu cara yang tepat buat anak seusia Aisyah. Belajar sambil bermain, anak jadi happy!', emoji:'👩‍👧', rating:5, photo_url:'' },
+  { name:'Bapak Hendra', role:'Orang tua Bintang (SD Kelas 2)', text:'Si Bintang yang dulu nangis kalau disuruh ngitung, sekarang malah minta soal tambahan!', emoji:'👨‍👦', rating:5, photo_url:'' },
+  { name:'Ibu Dewi', role:'Orang tua Zahra (TK A)', text:'Jadwal fleksibel banget, bisa weekend. Sangat cocok buat kami yang sibuk kerja.', emoji:'👩‍💼', rating:5, photo_url:'' },
+  { name:'Ibu Maya', role:'Orang tua Rafi (SD Kelas 3)', text:'Tulisan Rafi yang dulu jelek, sekarang rapi sekali. Harganya terjangkau, kualitasnya top!', emoji:'👩', rating:5, photo_url:'' },
 ];
 
 // ── Init ───────────────────────────────────────────────────────────────
