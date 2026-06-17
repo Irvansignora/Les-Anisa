@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Masuk — Les Anisa</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0ea5e9"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #fff9f0 0%, #f0f9ff 50%, #fdf4ff 100%);
+      padding: 20px;
+    }
+    .login-wrap { width: 100%; max-width: 420px; }
+
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--sky-500), var(--sky-700));
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px; margin: 0 auto 14px;
+      box-shadow: 0 8px 24px rgba(14,165,233,.25);
+    }
+    .login-logo h1 { font-family: var(--font-display); font-size: 26px; color: var(--neutral-900); margin-bottom: 4px; }
+    .login-logo p  { font-size: 13px; color: var(--neutral-500); font-weight: 600; }
+
+    .login-card {
+      background: white;
+      border-radius: var(--radius-2xl);
+      border: 1px solid var(--neutral-100);
+      padding: 36px 32px;
+      box-shadow: 0 4px 32px rgba(0,0,0,.08);
+    }
+    .login-title { font-size: 20px; color: var(--neutral-900); margin-bottom: 4px; }
+    .login-sub   { font-size: 13px; color: var(--neutral-400); margin-bottom: 28px; font-weight: 600; }
+
+    .show-pass {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; font-size: 16px; color: var(--neutral-400);
+    }
+    .pass-wrap { position: relative; }
+
+    .error-box {
+      background: #fee2e2; border: 1px solid #fecaca;
+      border-radius: var(--radius-md); padding: 11px 14px;
+      font-size: 13px; color: #dc2626; margin-bottom: 16px;
+      display: none; font-weight: 600;
+    }
+
+    .forgot-link {
+      text-align: right; margin-top: -8px; margin-bottom: 20px;
+    }
+    .forgot-link a {
+      font-size: 12px; color: var(--sky-600); text-decoration: none; font-weight: 700;
+    }
+
+    .login-back { text-align: center; margin-top: 20px; }
+    .login-back a { font-size: 13px; color: var(--neutral-500); text-decoration: none; font-weight: 600; }
+    .login-back a:hover { color: var(--neutral-700); }
+
+    .role-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--sky-50); border: 1.5px solid var(--sky-200);
+      color: var(--sky-700); border-radius: 99px;
+      padding: 4px 12px; font-size: 12px; font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    /* Reset modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.4); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: white; border-radius: var(--radius-2xl);
+      padding: 28px; width: 100%; max-width: 360px;
+      box-shadow: var(--shadow-xl);
+    }
+    .modal-box h3 { font-size: 17px; margin-bottom: 6px; color: var(--neutral-900); }
+    .modal-box p  { font-size: 13px; color: var(--neutral-500); margin-bottom: 18px; font-weight: 600; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-logo">
+    <div class="login-logo-icon">📚</div>
+    <h1>Les Anisa</h1>
+    <p>Bimbingan Calistung TK, PAUD & SD</p>
+  </div>
+
+  <div class="login-card">
+    <div class="role-badge" id="role-badge">🔄 Mendeteksi akun...</div>
+    <h2 class="login-title">Selamat Datang! 👋</h2>
+    <p class="login-sub" id="login-sub">Masuk ke portal Anda</p>
+
+    <div class="error-box" id="error-box"></div>
+
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-input" id="email" placeholder="email@contoh.com"
+             autocomplete="email" required oninput="clearError()"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="pass-wrap">
+        <input type="password" class="form-input" id="password" placeholder="••••••••"
+               autocomplete="current-password" required onkeydown="if(event.key==='Enter')doLogin()"/>
+        <button type="button" class="show-pass" onclick="togglePass()">👁</button>
+      </div>
+    </div>
+
+    <div class="forgot-link">
+      <a href="#" onclick="openReset();return false;">Lupa password?</a>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()" style="padding:14px;font-size:15px">
+      <span id="login-btn-text">🔐 Masuk</span>
+    </button>
+  </div>
+
+  <div class="login-back">
+    <a href="/">← Kembali ke halaman utama</a>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="reset-modal">
+  <div class="modal-box">
+    <h3>🔑 Reset Password</h3>
+    <p>Masukkan email Anda, kami kirimkan link untuk reset password.</p>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-input" id="reset-email" placeholder="email@contoh.com"/>
+    </div>
+    <div class="error-box" id="reset-error" style="margin-top:8px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-full" onclick="closeReset()" style="background:var(--neutral-100);color:var(--neutral-700)">Batal</button>
+      <button class="btn btn-primary btn-full" id="reset-btn" onclick="doReset()">
+        <span id="reset-btn-text">Kirim Link</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import {
+  auth, db, signInWithEmailAndPassword, onAuthStateChanged,
+  sendPasswordResetEmail, doc, getDoc
+} from '../assets/js/firebase-config.js';
+import { toast } from '../assets/js/utils.js';
+
+// ── Auto-redirect if already logged in ──────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    document.getElementById('role-badge').innerHTML = '🔐 Portal Login';
+    document.getElementById('login-sub').textContent = 'Masuk sebagai Admin atau Orang Tua';
+    return;
+  }
+  await redirectByRole(user);
+});
+
+async function redirectByRole(user) {
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const role = snap.exists() ? snap.data().role : 'parent';
+    if (role === 'admin') {
+      document.getElementById('role-badge').innerHTML = '👩‍💼 Admin';
+      window.location.href = '/admin/';
+    } else {
+      document.getElementById('role-badge').innerHTML = '👨‍👩‍👦 Orang Tua';
+      window.location.href = '/parent/dashboard.html';
+    }
+  } catch {
+    window.location.href = '/parent/dashboard.html';
+  }
+}
+
+// ── Login ────────────────────────────────────────────────────────
+window.doLogin = async function() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  if (!email || !password) {
+    showError('Email dan password wajib diisi.');
+    return;
+  }
+
+  const btn = document.getElementById('login-btn');
+  const txt = document.getElementById('login-btn-text');
+  btn.disabled = true;
+  txt.textContent = '⏳ Masuk...';
+  clearError();
+
+  try {
+    const { user } = await signInWithEmailAndPassword(auth, email, password);
+    await redirectByRole(user);
+  } catch(err) {
+    btn.disabled = false;
+    txt.textContent = '🔐 Masuk';
+    const msgs = {
+      'auth/user-not-found':     'Email tidak terdaftar.',
+      'auth/wrong-password':     'Password salah.',
+      'auth/invalid-email':      'Format email tidak valid.',
+      'auth/too-many-requests':  'Terlalu banyak percobaan. Coba lagi nanti.',
+      'auth/invalid-credential': 'Email atau password salah.',
+    };
+    showError(msgs[err.code] || 'Login gagal. Periksa email & password.');
+  }
+};
+
+// ── Reset Password ───────────────────────────────────────────────
+window.openReset = function() {
+  const email = document.getElementById('email').value.trim();
+  if (email) document.getElementById('reset-email').value = email;
+  document.getElementById('reset-modal').classList.add('open');
+};
+window.closeReset = function() {
+  document.getElementById('reset-modal').classList.remove('open');
+  document.getElementById('reset-error').style.display = 'none';
+};
+window.doReset = async function() {
+  const email = document.getElementById('reset-email').value.trim();
+  const btn   = document.getElementById('reset-btn');
+  const txt   = document.getElementById('reset-btn-text');
+  const err   = document.getElementById('reset-error');
+  if (!email) { err.textContent = 'Masukkan email dulu.'; err.style.display='block'; return; }
+
+  btn.disabled = true;
+  txt.textContent = '⏳ Mengirim...';
+  err.style.display = 'none';
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    closeReset();
+    toast('✅ Link reset password dikirim ke email Anda!', 'success');
+  } catch(e) {
+    err.textContent = e.code === 'auth/user-not-found' ? 'Email tidak ditemukan.' : 'Gagal mengirim. Coba lagi.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    txt.textContent = 'Kirim Link';
+  }
+};
+
+// ── Helpers ──────────────────────────────────────────────────────
+window.clearError = function() {
+  const e = document.getElementById('error-box');
+  e.style.display = 'none';
+};
+function showError(msg) {
+  const e = document.getElementById('error-box');
+  e.textContent = msg;
+  e.style.display = 'block';
+}
+window.togglePass = function() {
+  const inp = document.getElementById('password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+};
+</script>
+</body>
+</html>
