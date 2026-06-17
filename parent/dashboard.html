@@ -52,6 +52,7 @@
       <a href="attendance.html" class="nav-item"><span class="nav-icon">📅</span> Kehadiran</a>
     </nav>
     <div class="sidebar-footer">
+      <button class="sidebar-install-btn" data-pwa-install onclick="triggerPWAInstall()">📲 Install App</button>
       <a href="../index.html" target="_blank" class="sidebar-view-site">🌐 Halaman Utama</a>
       <button class="btn-logout" onclick="doLogout()">🚪 Keluar</button>
     </div>
@@ -91,8 +92,8 @@
         </div>
         <div class="stat-card stat-amber">
           <div class="stat-icon">⭐</div>
-          <div class="stat-value" id="st-avg">–</div>
-          <div class="stat-label">Rata-rata Nilai</div>
+          <div class="stat-value" id="st-avg" style="font-size:18px">–</div>
+          <div class="stat-label">Rata-rata Bintang</div>
           <div class="stat-sub">Semua sesi</div>
         </div>
         <div class="stat-card stat-lime">
@@ -176,12 +177,29 @@
   </div>
 </div>
 
+<!-- Popup Detail Laporan -->
+<div class="modal-backdrop hidden" id="modal-report-detail">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="rd-title">Detail Laporan</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-meta" id="rd-meta" style="margin-bottom:8px"></div>
+      <div id="rd-rating" style="margin-bottom:12px"></div>
+      <div style="font-size:14px;color:var(--neutral-700);font-weight:600;line-height:1.6" id="rd-desc"></div>
+      <div id="rd-images" class="report-images" style="margin-top:10px"></div>
+      <div id="rd-note-wrap"></div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script src="../assets/js/pwa.js"></script>
 <script type="module">
 import { db, auth, collection, getDocs, query, where, orderBy, limit, onAuthStateChanged, signOut, doc, getDoc }
   from '../assets/js/firebase-config.js';
-import { requireAuth, toast, formatDate, avatarInitial, scoreClass, SUBJECT_ICONS, ATT_STATUS } from '../assets/js/utils.js';
+import { requireAuth, toast, formatDate, avatarInitial, SUBJECT_ICONS, ATT_STATUS, getStars, starRow, openModal, setupModalClose } from '../assets/js/utils.js';
 
 const user = await requireAuth(auth, onAuthStateChanged, '/login/');
 const snap  = await getDoc(doc(db,'users',user.uid));
@@ -234,10 +252,10 @@ try {
     .slice(0,20);
 }
 
-const scores = reports.filter(r => r.score!=null).map(r => r.score);
-const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+const starsArr = reports.map(r => getStars(r)).filter(v => v != null);
+const avgStars = starsArr.length ? starsArr.reduce((a,b)=>a+b,0)/starsArr.length : null;
 document.getElementById('st-sessions').textContent = reports.length;
-document.getElementById('st-avg').textContent = avg !== null ? avg : '–';
+document.getElementById('st-avg').innerHTML = avgStars !== null ? starRow(avgStars,{size:18}) : '–';
 document.getElementById('st-prog').textContent = students[0]?.subjects?.length || 0;
 
 // Per-program breakdown
@@ -248,15 +266,14 @@ if (!Object.keys(bySubject).length) {
   pbEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada sesi belajar</p></div>';
 } else {
   pbEl.innerHTML = Object.entries(bySubject).map(([subj, reps]) => {
-    const sc = reps.filter(r=>r.score!=null).map(r=>r.score);
-    const avg = sc.length ? Math.round(sc.reduce((a,b)=>a+b,0)/sc.length) : null;
-    const cls = avg===null?'progress-sage':avg>=80?'progress-green':avg>=65?'progress-sun':'progress-coral';
+    const starsArr = reps.map(r=>getStars(r)).filter(v=>v!=null);
+    const avg = starsArr.length ? starsArr.reduce((a,b)=>a+b,0)/starsArr.length : null;
     const latest = reps[0];
     return `<div class="prog-subject-card">
       <div class="prog-subject-icon">${SUBJECT_ICONS[subj]||'📚'}</div>
       <div class="prog-subject-name">${subj}</div>
       <div class="prog-subject-count">${reps.length} sesi</div>
-      ${avg!==null ? `<div class="prog-subject-avg">${avg}</div><div class="progress-bar"><div class="progress-fill ${cls}" style="width:${avg}%"></div></div>` : '<p style="font-size:12px;color:var(--neutral-400);font-weight:600">Belum ada nilai</p>'}
+      ${avg!==null ? `<div class="prog-subject-avg">${starRow(avg,{size:16})}</div><div class="progress-bar"><div class="progress-fill progress-sun" style="width:${avg/5*100}%"></div></div>` : '<p style="font-size:12px;color:var(--neutral-400);font-weight:600">Belum ada bintang</p>'}
       ${latest ? `<p style="font-size:11px;color:var(--neutral-400);margin-top:8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Terakhir: ${latest.title}</p>` : ''}
     </div>`;
   }).join('');
@@ -269,17 +286,35 @@ if (!latest5.length) {
   repEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
 } else {
   repEl.innerHTML = latest5.map(r => {
-    const sc = scoreClass(r.score);
-    return `<div class="report-card">
-      <div class="report-score ${sc}">${r.score!=null ? r.score : (SUBJECT_ICONS[r.subject]||'📚')}</div>
+    const st = getStars(r);
+    return `<div class="report-card clickable" onclick="openReportDetail('${r.id}')">
+      <div class="report-icon">${SUBJECT_ICONS[r.subject]||'📚'}</div>
       <div class="report-body">
         <div class="report-title">${r.title}</div>
         <div class="report-meta">${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}</div>
+        <div class="report-rating">${starRow(st,{size:14})}</div>
         <div class="report-desc">${r.description}</div>
+        ${r.teacher_note ? `<div class="report-note-preview">💬 Ada catatan dari guru</div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
+
+window.openReportDetail = function(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('rd-title').textContent = r.title;
+  document.getElementById('rd-meta').textContent = `${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}`;
+  document.getElementById('rd-rating').innerHTML = starRow(getStars(r), {size:22});
+  document.getElementById('rd-desc').textContent = r.description || '';
+  const imgs = (r.media_urls||[]).map(u => `<img src="${u}" style="width:88px;height:68px;object-fit:cover;border-radius:10px;border:2px solid var(--neutral-100);cursor:pointer" onclick="window.open('${u}')"/>`).join('');
+  document.getElementById('rd-images').innerHTML = imgs;
+  document.getElementById('rd-note-wrap').innerHTML = r.teacher_note
+    ? `<div class="teacher-note-box"><div class="teacher-note-label">💬 Catatan dari Guru</div><div class="teacher-note-text">${r.teacher_note}</div></div>`
+    : '';
+  openModal('modal-report-detail');
+};
+setupModalClose();
 
 // Attendance
 let atts = [];
