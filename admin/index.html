@@ -105,7 +105,7 @@ import { db, auth, collection, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
          query, where, orderBy, limit, onAuthStateChanged, signOut, doc, getDoc, serverTimestamp }
   from '../assets/js/firebase-config.js';
 import { CLOUDINARY_CONFIG } from '../assets/js/firebase-config.js';
-import { toast, formatDate, avatarInitial, scoreClass, SUBJECT_ICONS, ATT_STATUS,
+import { toast, formatDate, avatarInitial, getStars, starRow, SUBJECT_ICONS, ATT_STATUS,
          openModal, closeModal, todayISO, openLightbox, uploadToCloudinary,
          READING_LEVELS, WRITING_LEVELS, COUNTING_LEVELS, LEVEL_MAP } from '../assets/js/utils.js';
 
@@ -251,7 +251,7 @@ async function renderHome() {
   const repSnap5 = await getDocs(query(collection(db,'progress_reports'), orderBy('session_date','desc'), limit(5)));
   const rpEl = document.getElementById('recent-progress');
   rpEl.innerHTML = repSnap5.empty ? '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>'
-    : repSnap5.docs.map(d=>{const r=d.data();const sc=scoreClass(r.score);return `<div class="report-card"><div class="report-score ${sc}">${r.score!=null?r.score:(SUBJECT_ICONS[r.subject]||'📚')}</div><div class="report-body"><div class="report-title">${r.title}</div><div class="report-meta">${r.student_name||'?'} · ${SUBJECT_ICONS[r.subject]||''} ${r.subject} · ${formatDate(r.session_date)}</div></div></div>`;}).join('');
+    : repSnap5.docs.map(d=>{const r=d.data();const st=getStars(r);return `<div class="report-card"><div class="report-icon">${SUBJECT_ICONS[r.subject]||'📚'}</div><div class="report-body"><div class="report-title">${r.title}</div><div class="report-meta">${r.student_name||'?'} · ${SUBJECT_ICONS[r.subject]||''} ${r.subject} · ${formatDate(r.session_date)}</div><div class="report-rating">${starRow(st,{size:13})}</div></div></div>`;}).join('');
 
   const peEl = document.getElementById('pending-enroll');
   peEl.innerHTML = pendSnap.empty ? '<div class="empty-state"><div class="empty-icon">✅</div><p>Tidak ada pending</p></div>'
@@ -461,9 +461,9 @@ function renderReportList() {
   const wrap=document.getElementById('reports-wrap');
   if(!filtered.length){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';return;}
   wrap.innerHTML=filtered.map(r=>{
-    const sc=scoreClass(r.score);
+    const st=getStars(r);
     const imgs=(r.media_urls||[]).map(u=>`<img src="${u}" onclick="openLightbox('${u}')" style="width:56px;height:44px;object-fit:cover;border-radius:10px;border:2px solid var(--neutral-100);cursor:pointer"/>`).join('');
-    return `<div class="report-card"><div class="report-score ${sc}">${r.score!=null?r.score:(SUBJECT_ICONS[r.subject]||'📚')}</div><div class="report-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div class="report-title">${r.title}</div><div style="display:flex;gap:4px;flex-shrink:0"><span class="badge badge-sky">${SUBJECT_ICONS[r.subject]||''} ${r.subject}</span><button onclick="editReport('${r.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px" title="Edit">✏️</button></div></div><div class="report-meta">${r.student_name||'?'} · ${formatDate(r.session_date)}</div><div class="report-desc">${r.description}</div>${imgs?`<div class="report-images" style="margin-top:8px">${imgs}</div>`:''}</div></div>`;
+    return `<div class="report-card"><div class="report-icon">${SUBJECT_ICONS[r.subject]||'📚'}</div><div class="report-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div class="report-title">${r.title}</div><div style="display:flex;gap:4px;flex-shrink:0"><span class="badge badge-sky">${SUBJECT_ICONS[r.subject]||''} ${r.subject}</span><button onclick="editReport('${r.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px" title="Edit">✏️</button></div></div><div class="report-meta">${r.student_name||'?'} · ${formatDate(r.session_date)}</div><div class="report-rating">${starRow(st,{size:14})}</div><div class="report-desc">${r.description}</div>${imgs?`<div class="report-images" style="margin-top:8px">${imgs}</div>`:''}</div></div>`;
   }).join('');
 }
 
@@ -482,7 +482,13 @@ function injectReportModal() {
         </div>
         <div class="form-group"><label class="form-label">Judul Sesi *</label><input type="text" class="form-input" id="r-title" placeholder="cth: Latihan Suku Kata Ba-Bi-Bu" required/></div>
         <div class="form-grid-2">
-          <div class="form-group"><label class="form-label">Nilai (0–100)</label><input type="number" class="form-input" id="r-score" min="0" max="100" placeholder="85"/></div>
+          <div class="form-group"><label class="form-label">Penilaian (Bintang)</label>
+            <div class="star-picker" id="r-star-picker">
+              <span class="star-pick" data-val="1">★</span><span class="star-pick" data-val="2">★</span><span class="star-pick" data-val="3">★</span><span class="star-pick" data-val="4">★</span><span class="star-pick" data-val="5">★</span>
+              <button type="button" class="star-picker-clear" onclick="setReportStars(null)">Hapus</button>
+            </div>
+            <input type="hidden" id="r-stars" value=""/>
+          </div>
           <div class="form-group" id="level-group"><label class="form-label">Level yang Dicapai</label><select class="form-select" id="r-level"><option value="">Pilih level...</option></select></div>
         </div>
         <div class="form-group"><label class="form-label">Catatan Perkembangan *</label><textarea class="form-textarea" id="r-desc" placeholder="Ceritakan perkembangan si kecil..." required style="min-height:90px"></textarea></div>
@@ -510,6 +516,17 @@ window.updateLevels = function() {
   document.getElementById('r-level').innerHTML='<option value="">Pilih level...</option>'+levels.map(l=>`<option>${l}</option>`).join('');
   document.getElementById('level-group').style.display=levels.length?'block':'none';
 };
+window.setReportStars = function(val) {
+  document.getElementById('r-stars').value = val!=null ? val : '';
+  document.querySelectorAll('#r-star-picker .star-pick').forEach(s=>{
+    s.classList.toggle('filled', val!=null && Number(s.dataset.val)<=val);
+  });
+};
+document.getElementById('modal-host').addEventListener('click', e=>{
+  const pick = e.target.closest('.star-pick');
+  if (!pick) return;
+  window.setReportStars(Number(pick.dataset.val));
+});
 window.previewMedia = function(input) {
   reportMediaUpload=Array.from(input.files);
   document.getElementById('media-preview').innerHTML=reportMediaUpload.map((f,i)=>
@@ -523,7 +540,8 @@ window.openAddReport = function() {
   document.getElementById('r-edit-id').value='';
   document.getElementById('modal-report-title').textContent='Tambah Laporan Belajar';
   document.getElementById('delete-report-btn').classList.add('hidden');
-  ['r-student','r-subject','r-title','r-score','r-level','r-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['r-student','r-subject','r-title','r-level','r-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  window.setReportStars(null);
   document.getElementById('r-date').value=todayISO();
   document.getElementById('media-preview').innerHTML='';
   document.getElementById('existing-media').innerHTML='';
@@ -539,7 +557,7 @@ window.editReport = function(id) {
   document.getElementById('r-subject').value=r.subject||'';
   document.getElementById('r-date').value=r.session_date||'';
   document.getElementById('r-title').value=r.title||'';
-  document.getElementById('r-score').value=r.score!=null?r.score:'';
+  window.setReportStars(getStars(r));
   document.getElementById('r-desc').value=r.description||'';
   updateLevels(); document.getElementById('r-level').value=r.level_reached||'';
   reportMediaUpload=[]; reportExistingMedia=r.media_urls||[];
@@ -555,13 +573,13 @@ window.saveReport = async function() {
   const studentId=sel.value, studentName=sel.options[sel.selectedIndex]?.dataset.name||'';
   const subject=document.getElementById('r-subject').value, date=document.getElementById('r-date').value;
   const title=document.getElementById('r-title').value.trim(), desc=document.getElementById('r-desc').value.trim();
-  const scoreVal=document.getElementById('r-score').value, level=document.getElementById('r-level').value;
+  const starsVal=document.getElementById('r-stars').value, level=document.getElementById('r-level').value;
   if(!studentId||!subject||!date||!title||!desc){toast('Lengkapi semua field wajib','error');return;}
   const btn=document.getElementById('save-report-btn'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try {
     let newUrls=[];
     if(reportMediaUpload.length){btn.textContent='⏳ Upload media...';for(const f of reportMediaUpload){newUrls.push(await uploadToCloudinary(f,CLOUDINARY_CONFIG));}}
-    const data={student_id:studentId,student_name:studentName,subject,session_date:date,title,description:desc,score:scoreVal!==''?parseInt(scoreVal):null,level_reached:level,media_urls:[...reportExistingMedia,...newUrls],updated_at:serverTimestamp()};
+    const data={student_id:studentId,student_name:studentName,subject,session_date:date,title,description:desc,stars:starsVal!==''?parseInt(starsVal):null,level_reached:level,media_urls:[...reportExistingMedia,...newUrls],updated_at:serverTimestamp()};
     const editId=document.getElementById('r-edit-id').value;
     if(editId){await updateDoc(doc(db,'progress_reports',editId),data);toast('Laporan diperbarui!','success');}
     else{data.created_at=serverTimestamp();await addDoc(collection(db,'progress_reports'),data);toast('Laporan disimpan!','success');}
