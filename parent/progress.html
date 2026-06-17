@@ -94,8 +94,15 @@ if (students.length) document.getElementById('student-name-sub').textContent = `
 const studentIds = students.map(s => s.id);
 let allReports = [];
 if (studentIds.length) {
-  const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc')));
-  allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+  try {
+    const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc')));
+    allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+  } catch (err) {
+    console.warn('progress_reports index belum tersedia, fallback tanpa orderBy:', err);
+    const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds)));
+    allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+      .sort((a,b) => (b.session_date||'').localeCompare(a.session_date||''));
+  }
 }
 
 let activeSubject = 'all';
