@@ -325,62 +325,34 @@
     #testimoni { background: var(--neutral-50); }
     .testi-wrap { max-width: 1120px; margin: 0 auto; }
 
-    .testi-carousel { position: relative; margin-top: 44px; padding: 0 50px; }
-    .testi-track-wrap { overflow: hidden; }
-    .testi-track { display: flex; transition: transform .45s cubic-bezier(.4,0,.2,1); gap: 18px; }
-    .testi-slide { flex: 0 0 calc((100% - 18px*2)/3); min-width: 0; }
-    @media(max-width:860px){ .testi-slide { flex: 0 0 calc((100% - 18px)/2); } }
-    @media(max-width:560px){ .testi-slide { flex: 0 0 100%; } }
+    .testi-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 24px;
+      margin-top: 44px;
+    }
+    @media(max-width:860px){ .testi-grid { grid-template-columns: repeat(2,1fr); gap: 18px; } }
+    @media(max-width:560px){ .testi-grid { grid-template-columns: 1fr; gap: 16px; max-width: 320px; margin-left: auto; margin-right: auto; } }
 
     .testi-photo-card {
-      background: white; border-radius: var(--radius-xl);
-      border: 2px solid var(--neutral-100); overflow: hidden;
-      box-shadow: var(--shadow-sm); transition: box-shadow .2s, transform .2s;
+      background: white; border-radius: 4px; padding: 14px 14px 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.06);
+      transition: transform .25s, box-shadow .25s;
     }
-    .testi-photo-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .testi-photo-card:hover { transform: translateY(-4px) rotate(0deg); box-shadow: 0 14px 28px rgba(0,0,0,.16); }
+
     .testi-photo-box {
       position: relative; background: var(--neutral-100); overflow: hidden;
-      width: 100%; max-width: 260px; aspect-ratio: 9/14; margin: 0 auto; cursor: zoom-in;
+      width: 100%; aspect-ratio: 1/1; cursor: zoom-in; border-radius: 2px;
     }
-    .testi-photo-box img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+    .testi-photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .testi-photo-fallback {
       width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-      font-size: 44px; background: linear-gradient(135deg, var(--sky-100), var(--purple-100));
+      font-size: 48px; background: linear-gradient(135deg, var(--sky-100), var(--purple-100));
     }
     .testi-author {
-      display: flex; align-items: center; gap: 10px; padding: 14px 16px;
-      border-top: 2px solid var(--neutral-100);
+      display: flex; align-items: center; gap: 6px; padding-top: 12px;
     }
-    .testi-avatar { font-size: 18px; width: 36px; height: 36px; background: var(--sky-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
-    .testi-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .testi-name { font-size: 13px; font-weight: 700; color: var(--neutral-900); }
-    .testi-role { font-size: 11px; color: var(--neutral-400); font-weight: 600; }
-
-    @media(max-width:700px){
-      .testi-carousel { padding: 0 8px; }
-      .testi-photo-box { max-width: 220px; }
-    }
-
-    .testi-nav-btn {
-      position: absolute; top: 50%; transform: translateY(-50%);
-      width: 40px; height: 40px; border-radius: 50%;
-      background: white; border: 2px solid var(--neutral-100); box-shadow: var(--shadow-md);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; cursor: pointer; z-index: 10; color: var(--neutral-700);
-      transition: background .15s, transform .15s;
-    }
-    .testi-nav-btn:hover { background: var(--sky-50); transform: translateY(-50%) scale(1.06); }
-    .testi-nav-prev { left: 0; }
-    .testi-nav-next { right: 0; }
-    @media(max-width:700px){
-      .testi-nav-btn { width: 34px; height: 34px; font-size: 15px; }
-      .testi-nav-prev { left: -4px; }
-      .testi-nav-next { right: -4px; }
-    }
-
-    .testi-dots { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
-    .testi-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--neutral-200); border: none; cursor: pointer; padding: 0; transition: all .2s; }
-    .testi-dot.active { background: var(--sky-500); width: 24px; border-radius: 5px; }
+    .testi-pin { font-size: 13px; flex-shrink: 0; }
+    .testi-name { font-size: 13px; font-weight: 600; color: var(--neutral-700); font-style: italic; }
 
     .lightbox-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999;
@@ -753,14 +725,7 @@
       <div class="section-eyebrow">💬 Suara Orang Tua</div>
       <h2 class="section-title">Mereka Udah Buktiin! —<br><span style="color:var(--coral-500)">Anak Makin Pintar & Percaya Diri!</span> ❤️</h2>
     </div>
-    <div class="testi-carousel fade-up">
-      <button class="testi-nav-btn testi-nav-prev" onclick="testiPrev()" aria-label="Sebelumnya">‹</button>
-      <div class="testi-track-wrap">
-        <div class="testi-track" id="testi-track"><!-- rendered by JS --></div>
-      </div>
-      <button class="testi-nav-btn testi-nav-next" onclick="testiNext()" aria-label="Berikutnya">›</button>
-      <div class="testi-dots" id="testi-dots"><!-- rendered by JS --></div>
-    </div>
+    <div class="testi-grid" id="testi-grid"><!-- rendered by JS --></div>
   </div>
 </section>
 
@@ -1021,11 +986,7 @@ async function loadPrograms() {
   observeFadeUps();
 }
 
-// ── Render testimonials (photo carousel) ────────────────────────────────
-let testiList = [];
-let testiIndex = 0;
-let testiAutoTimer = null;
-
+// ── Render testimonials (static photo grid) ─────────────────────────────
 async function loadTestimonials() {
   let testis;
   try {
@@ -1035,60 +996,22 @@ async function loadTestimonials() {
   if (!testis) testis = DEFAULT_TESTIS;
   if (typeof testis === 'string') testis = JSON.parse(testis);
 
-  testiList = testis;
-  testiIndex = 0;
-
-  document.getElementById('testi-track').innerHTML = testiList.map((t) =>
-    `<div class="testi-slide">
-      <div class="testi-photo-card">
-        <div class="testi-photo-box" ${t.photo_url ? `onclick="openLightboxImg('${t.photo_url}')"` : ''}>
-          ${t.photo_url
-            ? `<img src="${t.photo_url}" alt="Testimoni ${t.name}" loading="lazy"/>`
-            : `<div class="testi-photo-fallback">${t.emoji||'👨‍👩‍👧'}</div>`}
-        </div>
-        <div class="testi-author">
-          <div class="testi-avatar">${t.avatar_url ? `<img src="${t.avatar_url}" alt="${t.name}"/>` : (t.emoji||'👤')}</div>
-          <div><div class="testi-name">${t.name||'Orang Tua Murid'}</div>${t.role?`<div class="testi-role">${t.role}</div>`:''}</div>
-        </div>
+  document.getElementById('testi-grid').innerHTML = testis.map((t, i) =>
+    `<div class="testi-photo-card fade-up" style="animation-delay:${i*.06}s">
+      <div class="testi-photo-box" ${t.photo_url ? `onclick="openLightboxImg('${t.photo_url}')"` : ''}>
+        ${t.photo_url
+          ? `<img src="${t.photo_url}" alt="Testimoni ${t.name}" loading="lazy"/>`
+          : `<div class="testi-photo-fallback">${t.emoji||'👨‍👩‍👧'}</div>`}
+      </div>
+      <div class="testi-author">
+        <span class="testi-pin">📍</span>
+        <span class="testi-name">${t.name||'Orang Tua Murid'}</span>
       </div>
     </div>`
   ).join('');
 
-  document.getElementById('testi-dots').innerHTML = testiList.map((_, i) =>
-    `<button class="testi-dot${i===0?' active':''}" onclick="testiGoTo(${i})" aria-label="Slide ${i+1}"></button>`
-  ).join('');
-
   observeFadeUps();
-  testiRender();
-  startTestiAutoplay();
 }
-
-function testiSlidesPerView() {
-  const w = window.innerWidth;
-  if (w <= 560) return 1;
-  if (w <= 860) return 2;
-  return 3;
-}
-function testiMaxIndex() {
-  return Math.max(0, testiList.length - testiSlidesPerView());
-}
-function testiRender() {
-  testiIndex = Math.min(testiIndex, testiMaxIndex());
-  const slideEl = document.querySelector('.testi-slide');
-  const wrap = document.getElementById('testi-track').parentElement;
-  const slideWidth = slideEl ? slideEl.getBoundingClientRect().width + 18 : 0;
-  document.getElementById('testi-track').style.transform = `translateX(-${testiIndex*slideWidth}px)`;
-  document.querySelectorAll('.testi-dot').forEach((d,i) => d.classList.toggle('active', i===testiIndex));
-}
-window.testiGoTo = function(i) { testiIndex = i; testiRender(); restartTestiAutoplay(); };
-window.testiNext = function() { testiIndex = testiIndex >= testiMaxIndex() ? 0 : testiIndex+1; testiRender(); restartTestiAutoplay(); };
-window.testiPrev = function() { testiIndex = testiIndex <= 0 ? testiMaxIndex() : testiIndex-1; testiRender(); restartTestiAutoplay(); };
-function startTestiAutoplay() {
-  if (testiList.length <= testiSlidesPerView()) return;
-  testiAutoTimer = setInterval(() => { testiIndex = testiIndex >= testiMaxIndex() ? 0 : testiIndex+1; testiRender(); }, 4000);
-}
-function restartTestiAutoplay() { clearInterval(testiAutoTimer); startTestiAutoplay(); }
-window.addEventListener('resize', () => testiRender());
 window.openLightboxImg = function(url) {
   const box = document.createElement('div');
   box.className = 'lightbox-overlay';
