@@ -114,7 +114,7 @@ let currentUser = null;
 
 await new Promise((resolve) => {
   onAuthStateChanged(auth, async (user) => {
-    if (!user) { window.location.href = '/admin/login/'; return; }
+    if (!user) { window.location.href = '/login/'; return; }
     const snap = await getDoc(doc(db, 'users', user.uid));
     if (snap.exists() && snap.data().role !== 'admin') {
       window.location.href = '/parent/'; return;
@@ -864,7 +864,7 @@ window.uploadSettingPhoto=async function(fieldId,input){const file=input.files[0
 window.saveSettings=async function(){if(!Object.keys(settingsChanges).length){toast('Tidak ada perubahan','info');return;}const btn=document.getElementById('save-settings-btn');btn.disabled=true;btn.textContent='⏳ Menyimpan...';try{for(const[k,raw]of Object.entries(settingsChanges)){const field=SETTINGS_GROUPS.flatMap(g=>g.fields).find(f=>f.id===k);if(field?.type==='json'){try{JSON.parse(raw);}catch{toast(`JSON tidak valid: ${field.label}`,'error');btn.disabled=false;btn.textContent='💾 Simpan';return;}}let value=raw;if(field?.type==='json'){try{value=JSON.parse(raw);}catch{}}await setDoc(doc(db,'site_settings',k),{value,updated_at:new Date().toISOString()},{merge:true});}toast(`${Object.keys(settingsChanges).length} pengaturan disimpan!`,'success');settingsChanges={};await renderSettings();}catch(e){toast('Gagal: '+e.message,'error');}btn.textContent='💾 Simpan';};
 
 // ── Shared ────────────────────────────────────────────────────────────────
-window.doLogout = async function() { await signOut(auth); window.location.href = '/admin/login/'; };
+window.doLogout = async function() { await signOut(auth); window.location.href = '/login/'; };
 window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
 window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
 window.openModal  = openModal;
