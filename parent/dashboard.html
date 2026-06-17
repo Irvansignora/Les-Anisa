@@ -222,8 +222,17 @@ const studentIds = students.map(s => s.id);
 if (studentIds.length) {
 
 // Reports
-const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc'), limit(20)));
-const reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+let reports = [];
+try {
+  const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc'), limit(20)));
+  reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+} catch (err) {
+  console.warn('progress_reports index belum tersedia, fallback tanpa orderBy:', err);
+  const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds)));
+  reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+    .sort((a,b) => (b.session_date||'').localeCompare(a.session_date||''))
+    .slice(0,20);
+}
 
 const scores = reports.filter(r => r.score!=null).map(r => r.score);
 const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
@@ -273,8 +282,17 @@ if (!latest5.length) {
 }
 
 // Attendance
-const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc'), limit(12)));
-const atts = attSnap.docs.map(d => d.data());
+let atts = [];
+try {
+  const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc'), limit(12)));
+  atts = attSnap.docs.map(d => d.data());
+} catch (err) {
+  console.warn('attendance index belum tersedia, fallback tanpa orderBy:', err);
+  const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds)));
+  atts = attSnap.docs.map(d => d.data())
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''))
+    .slice(0,12);
+}
 const hadir = atts.filter(a=>a.status==='hadir').length;
 const rate = atts.length ? Math.round(hadir/atts.length*100) : 0;
 document.getElementById('st-att').textContent = `${rate}%`;
