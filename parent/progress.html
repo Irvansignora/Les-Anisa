@@ -31,6 +31,7 @@
       <a href="attendance.html" class="nav-item"><span class="nav-icon">📅</span> Kehadiran</a>
     </nav>
     <div class="sidebar-footer">
+      <button class="sidebar-install-btn" data-pwa-install onclick="triggerPWAInstall()">📲 Install App</button>
       <a href="../index.html" target="_blank" class="sidebar-view-site">🌐 Halaman Utama</a>
       <button class="btn-logout" onclick="doLogout()">🚪 Keluar</button>
     </div>
@@ -74,12 +75,29 @@
   </div>
 </nav>
 
+<!-- Popup Detail Laporan -->
+<div class="modal-backdrop hidden" id="modal-report-detail">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="rd-title">Detail Laporan</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-meta" id="rd-meta" style="margin-bottom:8px"></div>
+      <div id="rd-rating" style="margin-bottom:12px"></div>
+      <div style="font-size:14px;color:var(--neutral-700);font-weight:600;line-height:1.6" id="rd-desc"></div>
+      <div id="rd-images" class="report-images" style="margin-top:10px"></div>
+      <div id="rd-note-wrap"></div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script src="../assets/js/pwa.js"></script>
 <script type="module">
 import { db, auth, collection, getDocs, query, where, orderBy, onAuthStateChanged, signOut, doc, getDoc }
   from '../assets/js/firebase-config.js';
-import { requireAuth, toast, formatDate, avatarInitial, scoreClass, SUBJECT_ICONS } from '../assets/js/utils.js';
+import { requireAuth, toast, formatDate, avatarInitial, SUBJECT_ICONS, getStars, starRow, openModal, setupModalClose } from '../assets/js/utils.js';
 
 const user = await requireAuth(auth, onAuthStateChanged, '/login/');
 const snap = await getDoc(doc(db,'users',user.uid));
@@ -115,23 +133,40 @@ function renderReports() {
     return;
   }
   el.innerHTML = filtered.map(r => {
-    const sc = scoreClass(r.score);
+    const st = getStars(r);
     const imgs = (r.media_urls||[]).slice(0,3).map(u =>
-      `<img src="${u}" style="width:56px;height:44px;object-fit:cover;border-radius:10px;border:2px solid var(--neutral-100);cursor:pointer" onclick="window.open('${u}')"/>`
+      `<img src="${u}" style="width:56px;height:44px;object-fit:cover;border-radius:10px;border:2px solid var(--neutral-100);cursor:pointer" onclick="event.stopPropagation();window.open('${u}')"/>`
     ).join('');
-    return `<div class="report-card">
-      <div class="report-score ${sc}">${r.score!=null ? r.score : (SUBJECT_ICONS[r.subject]||'📚')}</div>
+    return `<div class="report-card clickable" onclick="openReportDetail('${r.id}')">
+      <div class="report-icon">${SUBJECT_ICONS[r.subject]||'📚'}</div>
       <div class="report-body">
         <div class="report-title">${r.title}</div>
         <div class="report-meta">${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}</div>
+        <div class="report-rating">${starRow(st,{size:14})}</div>
         <div class="report-desc">${r.description}</div>
         ${imgs ? `<div class="report-images" style="margin-top:8px">${imgs}</div>` : ''}
-        ${r.teacher_note ? `<div style="background:var(--sky-50);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--sky-700);font-weight:600">💬 ${r.teacher_note}</div>` : ''}
+        ${r.teacher_note ? `<div class="report-note-preview">💬 Ada catatan dari guru — ketuk untuk lihat</div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 renderReports();
+
+window.openReportDetail = function(id) {
+  const r = allReports.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('rd-title').textContent = r.title;
+  document.getElementById('rd-meta').textContent = `${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}`;
+  document.getElementById('rd-rating').innerHTML = starRow(getStars(r), {size:22});
+  document.getElementById('rd-desc').textContent = r.description || '';
+  const imgs = (r.media_urls||[]).map(u => `<img src="${u}" style="width:88px;height:68px;object-fit:cover;border-radius:10px;border:2px solid var(--neutral-100);cursor:pointer" onclick="window.open('${u}')"/>`).join('');
+  document.getElementById('rd-images').innerHTML = imgs;
+  document.getElementById('rd-note-wrap').innerHTML = r.teacher_note
+    ? `<div class="teacher-note-box"><div class="teacher-note-label">💬 Catatan dari Guru</div><div class="teacher-note-text">${r.teacher_note}</div></div>`
+    : '';
+  openModal('modal-report-detail');
+};
+setupModalClose();
 
 document.querySelectorAll('.filter-tab').forEach(tab => {
   tab.addEventListener('click', () => {
