@@ -63,6 +63,29 @@ export function progressClass(score) {
   return 'progress-red';
 }
 
+// ── Star rating ───────────────────────────────────────────────────────
+// Penilaian sekarang pakai bintang (1–5), bukan angka. Laporan lama yang
+// masih menyimpan field `score` (0–100) otomatis dikonversi ke skala
+// bintang supaya tetap tampil rapi tanpa perlu migrasi data manual.
+export function getStars(report) {
+  if (report == null) return null;
+  if (report.stars != null) return report.stars;
+  if (report.score != null) return Math.max(1, Math.min(5, Math.round(report.score / 100 * 5)));
+  return null;
+}
+export function starRow(rating, opts = {}) {
+  const max = opts.max || 5;
+  const size = opts.size || 16;
+  if (rating == null) {
+    return `<span class="star-rating-empty">Belum dinilai</span>`;
+  }
+  const r = Math.max(0, Math.min(max, Math.round(rating)));
+  let html = `<span class="star-rating" style="font-size:${size}px" aria-label="${r} dari ${max} bintang">`;
+  for (let i = 1; i <= max; i++) html += `<span class="star ${i <= r ? 'filled' : 'empty'}">★</span>`;
+  html += '</span>';
+  return html;
+}
+
 // ── Subject helpers ────────────────────────────────────────────────────
 export const SUBJECTS = ['Membaca', 'Menulis', 'Berhitung', 'Calistung (Lengkap)'];
 export const SUBJECT_ICONS = { 'Membaca':'📖', 'Menulis':'✏️', 'Berhitung':'🔢', 'Calistung (Lengkap)':'🌟' };
