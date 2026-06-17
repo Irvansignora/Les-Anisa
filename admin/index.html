@@ -843,7 +843,6 @@ const SETTINGS_GROUPS=[
   {key:'hero',label:'🏠 Hero / Banner',fields:[{id:'hero_badge',label:'Badge teks',type:'text'},{id:'hero_title',label:'Judul utama',type:'text'},{id:'hero_subtitle',label:'Subtitle',type:'textarea'},{id:'hero_cta_primary',label:'Tombol CTA Utama',type:'text'},{id:'hero_cta_secondary',label:'Tombol CTA Kedua',type:'text'},{id:'stats',label:'Statistik (JSON)',type:'json',hint:'Array: [{value, label}, ...]'}]},
   {key:'about',label:'ℹ️ Tentang Kami',fields:[{id:'about_title',label:'Judul',type:'text'},{id:'about_desc1',label:'Paragraf 1',type:'textarea'},{id:'about_desc2',label:'Paragraf 2',type:'textarea'},{id:'about_benefits',label:'Keunggulan (JSON)',type:'json',hint:'Array string'}]},
   {key:'teacher',label:'👩‍🏫 Profil Pengajar',fields:[{id:'teacher_name',label:'Nama Lengkap',type:'text'},{id:'teacher_title',label:'Jabatan',type:'text'},{id:'teacher_bio',label:'Bio',type:'textarea'},{id:'teacher_photo_url',label:'Foto (URL/Upload)',type:'photo'},{id:'teacher_speciality',label:'Spesialisasi',type:'text'},{id:'teacher_stats',label:'Statistik (JSON)',type:'json'}]},
-  {key:'testimonials',label:'💬 Testimoni',fields:[{id:'testimonials',label:'Daftar Testimoni (JSON)',type:'json',hint:'[{name,role,text,emoji,rating}, ...]'}]},
   {key:'contact',label:'📞 Kontak',fields:[{id:'whatsapp_number',label:'No. WhatsApp',type:'text',hint:'Format: 6281234567890'},{id:'instagram_url',label:'URL Instagram',type:'text'},{id:'email_contact',label:'Email',type:'text'},{id:'address',label:'Alamat',type:'textarea'},{id:'operational_hours',label:'Jam Operasional',type:'textarea'}]},
   {key:'seo',label:'🔍 SEO',fields:[{id:'site_name',label:'Nama Website',type:'text'},{id:'site_tagline',label:'Tagline',type:'text'}]},
 ];
@@ -862,6 +861,7 @@ async function renderSettings() {
   const snap=await getDocs(collection(db,'site_settings'));
   settingsData={};
   snap.forEach(d=>{settingsData[d.id]=d.data().value;});
+  testiSettingsData=[]; // reset agar reload fresh dari settingsData terbaru
   renderSettingsForm();
 }
 
@@ -884,13 +884,114 @@ function renderSettingsForm() {
           return `<div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;align-items:start;padding:14px 0;border-bottom:1px solid var(--neutral-50)"><div><div style="font-size:14px;font-weight:700;color:var(--neutral-800)">${f.label}${changed?' <span style="color:var(--sun-500);font-size:11px">● berubah</span>':''}</div>${f.hint?`<div style="font-size:12px;color:var(--neutral-400);font-weight:600;margin-top:3px">${f.hint}</div>`:''}</div><div>${inp}</div></div>`;
         }).join('')}
       </div>
+    </div>`).join('') + renderTestiSettingsHTML();
+}
+
+// ════════════════════════════════════════════════════════════════
+// TESTIMONIALS — Photo Carousel Management (max 6)
+// ════════════════════════════════════════════════════════════════
+let testiSettingsData = [];
+const TESTI_MAX = 6;
+const TESTI_DEFAULT = { name:'', role:'', text:'', rating:5, emoji:'👤', photo_url:'', avatar_url:'' };
+
+function renderTestiSettingsHTML() {
+  // Lazy-init from settingsData on first render
+  if (!testiSettingsData.length) {
+    let raw = settingsData['testimonials'];
+    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = null; } }
+    testiSettingsData = Array.isArray(raw) && raw.length ? raw.map(t=>({...TESTI_DEFAULT,...t})) : [];
+  }
+
+  return `
+    <div class="section-card" style="margin-bottom:14px">
+      <div class="section-head" style="cursor:pointer" onclick="toggleSettingsGroup('sg-testimonials','sga-testimonials')">
+        <h2>💬 Testimoni (Foto Carousel)</h2><span id="sga-testimonials" style="color:var(--neutral-400);font-size:18px">▾</span>
+      </div>
+      <div id="sg-testimonials" style="padding:16px 20px">
+        <p style="font-size:13px;color:var(--neutral-500);font-weight:600;margin-bottom:14px">Maksimal ${TESTI_MAX} testimoni. Setiap testimoni bisa diberi foto orang tua/anak — tampil sebagai carousel di landing page.</p>
+        <div id="testi-admin-list" style="display:flex;flex-direction:column;gap:14px">${renderTestiCardsHTML()}</div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="addTestiItem()" ${testiSettingsData.length>=TESTI_MAX?'disabled':''}>➕ Tambah Testimoni ${testiSettingsData.length>=TESTI_MAX?'(Maksimal tercapai)':''}</button>
+      </div>
+    </div>`;
+}
+
+function renderTestiCardsHTML() {
+  if (!testiSettingsData.length) return '<div class="empty-state" style="padding:24px"><p>Belum ada testimoni. Klik "Tambah Testimoni" untuk mulai.</p></div>';
+  return testiSettingsData.map((t,i) => `
+    <div class="section-card" style="border:2px solid var(--neutral-100)">
+      <div style="padding:14px 16px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex-shrink:0;text-align:center">
+          <div style="width:84px;height:84px;border-radius:14px;overflow:hidden;background:var(--neutral-100);display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:6px" id="testi-photo-prev-${i}">
+            ${t.photo_url?`<img src="${t.photo_url}" style="width:100%;height:100%;object-fit:cover"/>`:`<span>${t.emoji||'👤'}</span>`}
+          </div>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--sky-600);cursor:pointer;background:var(--sky-50);border:2px solid var(--sky-200);padding:4px 8px;border-radius:8px">
+            <input type="file" accept="image/*" style="display:none" onchange="uploadTestiPhoto(${i},this)"/> 📤 Foto
+          </label>
+          <div id="testi-photo-status-${i}" style="font-size:10px;color:var(--neutral-400);margin-top:2px"></div>
+        </div>
+        <div style="flex:1;min-width:220px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="text" class="form-input" placeholder="Nama orang tua" value="${t.name||''}" oninput="updateTestiField(${i},'name',this.value)"/>
+          <input type="text" class="form-input" placeholder="Role (cth: Orang tua Nayla, TK B)" value="${t.role||''}" oninput="updateTestiField(${i},'role',this.value)"/>
+          <textarea class="form-textarea" style="grid-column:1/-1;min-height:54px" placeholder="Isi testimoni..." oninput="updateTestiField(${i},'text',this.value)">${t.text||''}</textarea>
+          <select class="form-select" onchange="updateTestiField(${i},'rating',parseInt(this.value))">
+            ${[5,4,3,2,1].map(r=>`<option value="${r}" ${t.rating==r?'selected':''}>${'★'.repeat(r)} (${r})</option>`).join('')}
+          </select>
+          <input type="text" class="form-input" placeholder="Emoji fallback (cth: 👩)" value="${t.emoji||''}" oninput="updateTestiField(${i},'emoji',this.value)"/>
+        </div>
+        <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;flex-shrink:0" onclick="removeTestiItem(${i})">🗑 Hapus</button>
+      </div>
     </div>`).join('');
+}
+
+window.addTestiItem = function() {
+  if (testiSettingsData.length >= TESTI_MAX) return;
+  testiSettingsData.push({...TESTI_DEFAULT});
+  refreshTestiUI();
+};
+window.removeTestiItem = function(i) {
+  if (!confirm('Hapus testimoni ini?')) return;
+  testiSettingsData.splice(i,1);
+  refreshTestiUI();
+};
+window.updateTestiField = function(i, field, value) {
+  testiSettingsData[i][field] = value;
+  markTestiChanged();
+};
+window.uploadTestiPhoto = async function(i, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const st = document.getElementById(`testi-photo-status-${i}`);
+  st.textContent = '⏳ Upload...';
+  try {
+    const url = await uploadToCloudinary(file, CLOUDINARY_CONFIG);
+    testiSettingsData[i].photo_url = url;
+    document.getElementById(`testi-photo-prev-${i}`).innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover"/>`;
+    st.textContent = '✅ Berhasil';
+    setTimeout(()=>{st.textContent='';},2500);
+    markTestiChanged();
+  } catch(e) {
+    st.textContent = '❌ Gagal';
+    toast('Gagal upload foto: '+e.message,'error');
+  }
+};
+function markTestiChanged() {
+  // Filter testimoni yang benar2 kosong (nama & text blank) agar tidak ikut tersimpan
+  const cleaned = testiSettingsData.filter(t => (t.name||'').trim() || (t.text||'').trim());
+  settingsChanges['testimonials'] = JSON.stringify(cleaned);
+  document.getElementById('save-settings-btn').disabled = false;
+  document.getElementById('changed-bar').classList.remove('hidden');
+}
+function refreshTestiUI() {
+  document.getElementById('testi-admin-list').innerHTML = renderTestiCardsHTML();
+  const addBtn = document.querySelector('[onclick="addTestiItem()"]');
+  if (addBtn) { addBtn.disabled = testiSettingsData.length>=TESTI_MAX; addBtn.textContent = `➕ Tambah Testimoni ${testiSettingsData.length>=TESTI_MAX?'(Maksimal tercapai)':''}`; }
+  markTestiChanged();
 }
 
 window.toggleSettingsGroup=function(id,arrowId){const el=document.getElementById(id);const ar=document.getElementById(arrowId);const h=el.style.display==='none';el.style.display=h?'block':'none';ar.textContent=h?'▾':'▸';};
 window.markSettingChanged=function(id,val){settingsChanges[id]=val;document.getElementById('save-settings-btn').disabled=false;document.getElementById('changed-bar').classList.remove('hidden');};
 window.uploadSettingPhoto=async function(fieldId,input){const file=input.files[0];if(!file)return;const st=document.getElementById(`sup-${fieldId}`);st.textContent='⏳ Mengupload...';try{const url=await uploadToCloudinary(file,CLOUDINARY_CONFIG);document.getElementById(`sf-${fieldId}`).value=url;const prev=document.getElementById(`sph-${fieldId}`);if(prev){if(prev.tagName==='IMG')prev.src=url;else prev.innerHTML=`<img src="${url}" style="width:60px;height:60px;object-fit:cover;border-radius:12px"/>`;}markSettingChanged(fieldId,url);st.textContent='✅ Berhasil!';setTimeout(()=>{st.textContent='';},3000);}catch(e){st.textContent='❌ Gagal';toast('Gagal upload: '+e.message,'error');}};
-window.saveSettings=async function(){if(!Object.keys(settingsChanges).length){toast('Tidak ada perubahan','info');return;}const btn=document.getElementById('save-settings-btn');btn.disabled=true;btn.textContent='⏳ Menyimpan...';try{for(const[k,raw]of Object.entries(settingsChanges)){const field=SETTINGS_GROUPS.flatMap(g=>g.fields).find(f=>f.id===k);if(field?.type==='json'){try{JSON.parse(raw);}catch{toast(`JSON tidak valid: ${field.label}`,'error');btn.disabled=false;btn.textContent='💾 Simpan';return;}}let value=raw;if(field?.type==='json'){try{value=JSON.parse(raw);}catch{}}await setDoc(doc(db,'site_settings',k),{value,updated_at:new Date().toISOString()},{merge:true});}toast(`${Object.keys(settingsChanges).length} pengaturan disimpan!`,'success');settingsChanges={};await renderSettings();}catch(e){toast('Gagal: '+e.message,'error');}btn.textContent='💾 Simpan';};
+window.saveSettings=async function(){if(!Object.keys(settingsChanges).length){toast('Tidak ada perubahan','info');return;}const btn=document.getElementById('save-settings-btn');btn.disabled=true;btn.textContent='⏳ Menyimpan...';try{for(const[k,raw]of Object.entries(settingsChanges)){const field=SETTINGS_GROUPS.flatMap(g=>g.fields).find(f=>f.id===k);const isJsonKind=field?.type==='json'||k==='testimonials';if(isJsonKind){try{JSON.parse(raw);}catch{toast(`JSON tidak valid: ${field?.label||k}`,'error');btn.disabled=false;btn.textContent='💾 Simpan';return;}}let value=raw;if(isJsonKind){try{value=JSON.parse(raw);}catch{}}await setDoc(doc(db,'site_settings',k),{value,updated_at:new Date().toISOString()},{merge:true});}toast(`${Object.keys(settingsChanges).length} pengaturan disimpan!`,'success');settingsChanges={};await renderSettings();}catch(e){toast('Gagal: '+e.message,'error');}btn.textContent='💾 Simpan';};
 
 // ── Shared ────────────────────────────────────────────────────────────────
 window.doLogout = async function() { await signOut(auth); window.location.href = '/login/'; };
@@ -905,4 +1006,3 @@ navigate(initPage);
 </script>
 </body>
 </html>
-
