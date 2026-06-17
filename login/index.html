@@ -122,7 +122,7 @@
     </div>
 
     <div class="forgot-link">
-      <a href="#" onclick="openReset();return false;">Lupa password?</a>
+      <a href="#" onclick="openReset();return false;">Lupa password / baru daftar? Set password di sini →</a>
     </div>
 
     <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()" style="padding:14px;font-size:15px">
@@ -138,8 +138,8 @@
 <!-- Reset Password Modal -->
 <div class="modal-overlay" id="reset-modal">
   <div class="modal-box">
-    <h3>🔑 Reset Password</h3>
-    <p>Masukkan email Anda, kami kirimkan link untuk reset password.</p>
+    <h3>🔑 Set / Reset Password</h3>
+    <p>Baru pertama login atau lupa password? Masukkan email yang didaftarkan, kami kirim link untuk membuat password baru.</p>
     <div class="form-group">
       <label class="form-label">Email</label>
       <input type="email" class="form-input" id="reset-email" placeholder="email@contoh.com"/>
@@ -243,7 +243,9 @@ window.doReset = async function() {
   err.style.display = 'none';
 
   try {
-    await sendPasswordResetEmail(auth, email);
+    await sendPasswordResetEmail(auth, email, {
+      url: `${location.origin}/login/`,
+    });
     closeReset();
     toast('✅ Link reset password dikirim ke email Anda!', 'success');
   } catch(e) {
