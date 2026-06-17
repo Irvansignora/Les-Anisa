@@ -9,8 +9,8 @@
       // Remove trailing slash for comparison
       var clean = path.replace(/\/$/, '');
 
-      if (clean === '/admin/login' || path === '/admin/login/') {
-        window.location.replace('/admin/login/');
+      if (clean === '/admin/login' || path === '/login/') {
+        window.location.replace('/login/');
       } else if (clean === '/admin' || clean.startsWith('/admin/')) {
         window.location.replace('/admin/');
       } else if (clean === '/parent' || clean.startsWith('/parent/')) {
