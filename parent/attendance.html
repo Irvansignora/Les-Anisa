@@ -138,8 +138,15 @@ if (students.length) document.getElementById('student-name-sub').textContent = `
 const studentIds = students.map(s => s.id);
 let allAtts = [];
 if (studentIds.length) {
-  const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc')));
-  allAtts = attSnap.docs.map(d => d.data());
+  try {
+    const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc')));
+    allAtts = attSnap.docs.map(d => d.data());
+  } catch (err) {
+    console.warn('attendance index belum tersedia, fallback tanpa orderBy:', err);
+    const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds)));
+    allAtts = attSnap.docs.map(d => d.data())
+      .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  }
 }
 
 // Summary
@@ -211,4 +218,3 @@ window.closeSidebar = () => { document.getElementById('sidebar').classList.remov
 </script>
 </body>
 </html>
-
