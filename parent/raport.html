@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Raport & Sertifikat — Les Anisa</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0ea5e9"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+  <link rel="stylesheet" href="../assets/css/dashboard.css"/>
+</head>
+<body>
+<div class="dash-wrapper">
+  <div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar-logo">
+      <div class="sidebar-logo-icon">📚</div>
+      <div><div class="sidebar-logo-text">Les Anisa</div><div class="sidebar-logo-sub">Portal Orang Tua</div></div>
+    </a>
+    <div class="sidebar-user">
+      <div class="avatar" id="sb-avatar" style="background:linear-gradient(135deg,var(--sky-200),var(--purple-100));color:var(--sky-700);font-weight:800">O</div>
+      <div class="sidebar-user-info"><div class="sidebar-user-name" id="sb-name">Orang Tua</div><div class="sidebar-user-role">Wali Murid</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"  class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="progress.html"   class="nav-item"><span class="nav-icon">📈</span> Perkembangan</a>
+      <a href="attendance.html" class="nav-item"><span class="nav-icon">📅</span> Kehadiran</a>
+      <a href="raport.html"     class="nav-item active"><span class="nav-icon">🎓</span> Raport & Sertifikat</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-install-btn" data-pwa-install onclick="triggerPWAInstall()">📲 Install App</button>
+      <a href="../index.html" target="_blank" class="sidebar-view-site">🌐 Halaman Utama</a>
+      <button class="btn-logout" onclick="doLogout()">🚪 Keluar</button>
+    </div>
+  </aside>
+
+  <div class="dash-main">
+    <div class="dash-topbar">
+      <button class="topbar-icon-btn" onclick="openSidebar()">☰</button>
+      <div class="topbar-logo"><div class="topbar-logo-icon">📚</div><span class="topbar-logo-text">Les Anisa</span></div>
+      <button class="topbar-icon-btn" onclick="doLogout()">🚪</button>
+    </div>
+    <div class="dash-content">
+      <div class="page-header">
+        <h1 class="page-title">🎓 Raport & Sertifikat</h1>
+        <p class="page-sub" id="student-name-sub">Raport perkembangan & sertifikat si kecil dari sekolah</p>
+      </div>
+
+      <div class="filter-tabs" id="rp-tabs">
+        <span class="filter-tab active" data-tab="raport">📄 Raport Belajar</span>
+        <span class="filter-tab" data-tab="sertifikat">🏆 Sertifikat</span>
+      </div>
+
+      <div id="rp-body"><div class="empty-state"><div class="spinner mx-auto"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="dashboard.html" class="bnav-item"><div class="bnav-icon">🏠</div><span class="bnav-label">Beranda</span></a>
+    <a href="progress.html" class="bnav-item"><div class="bnav-icon">📈</div><span class="bnav-label">Nilai</span></a>
+    <a href="attendance.html" class="bnav-item"><div class="bnav-icon">📅</div><span class="bnav-label">Hadir</span></a>
+    <a href="raport.html" class="bnav-item active"><div class="bnav-icon">🎓</div><span class="bnav-label">Raport</span></a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+<script src="../assets/js/pwa.js"></script>
+<script type="module">
+import { db, auth, collection, getDocs, query, where, onAuthStateChanged, signOut, doc, getDoc }
+  from '../assets/js/firebase-config.js';
+import { requireAuth, toast, formatDate, avatarInitial } from '../assets/js/utils.js';
+
+const user = await requireAuth(auth, onAuthStateChanged, '/login/');
+const snap = await getDoc(doc(db,'users',user.uid));
+const userName = snap.data()?.name || user.email?.split('@')[0] || 'Bunda/Ayah';
+document.getElementById('sb-name').textContent = userName;
+document.getElementById('sb-avatar').textContent = avatarInitial(userName);
+
+const stuSnap = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
+const students = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+if (students.length === 1) document.getElementById('student-name-sub').textContent = `Raport & sertifikat ${students[0].name}`;
+const studentIds = students.map(s => s.id);
+
+let SITE_NAME = 'Les Anisa';
+try {
+  const ssSnap = await getDocs(collection(db,'site_settings'));
+  ssSnap.forEach(d => { if (d.id === 'site_name' && d.data().value) SITE_NAME = d.data().value; });
+} catch (e) { /* pakai default */ }
+
+let activeTab = 'raport', allRaports = [], allCerts = [];
+
+async function loadData() {
+  if (!studentIds.length) return;
+  const rSnap = await getDocs(query(collection(db,'raports'), where('student_id','in', studentIds)));
+  allRaports = rSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+    .sort((a,b) => (b.published_at?.seconds||0) - (a.published_at?.seconds||0));
+  const cSnap = await getDocs(query(collection(db,'certificates'), where('student_id','in', studentIds)));
+  allCerts = cSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+    .sort((a,b) => (b.published_at?.seconds||0) - (a.published_at?.seconds||0));
+}
+
+function renderTabBody() {
+  const body = document.getElementById('rp-body');
+  if (!studentIds.length) { body.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Data murid belum tersedia. Hubungi admin.</p></div>'; return; }
+
+  if (activeTab === 'raport') {
+    if (!allRaports.length) { body.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div><p>Belum ada raport yang diterbitkan admin</p></div>'; return; }
+    body.innerHTML = allRaports.map(r => `
+      <div class="report-card" style="margin-bottom:12px">
+        <div class="report-icon">📄</div>
+        <div class="report-body">
+          <div class="report-title">Raport ${formatDate(r.from)} – ${formatDate(r.to)}</div>
+          <div class="report-meta">${r.student_name} · Diterbitkan ${formatDate(r.published_at)}</div>
+          <div class="report-desc">${r.att_totals?.total||0} sesi tercatat · ${r.reports?.length||0} laporan belajar</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="viewRaport('${r.id}')">👁️ Lihat</button>
+      </div>`).join('');
+  } else {
+    if (!allCerts.length) { body.innerHTML = '<div class="empty-state"><div class="empty-icon">🏆</div><p>Belum ada sertifikat yang diterbitkan admin</p></div>'; return; }
+    body.innerHTML = `<div style="display:grid;gap:16px">` + allCerts.map(c => `
+      <div class="cert-preview-wrap">
+        <div class="cert-eyebrow">${SITE_NAME}</div>
+        <div class="cert-title">${c.title}</div>
+        <div style="font-size:13px;color:var(--neutral-500)">diberikan kepada</div>
+        <div class="cert-name">${c.student_name}</div>
+        <div class="cert-desc">${c.description}</div>
+        <div style="font-size:12px;color:var(--neutral-400);margin-bottom:14px">${formatDate(c.cert_date)}</div>
+        <div class="cert-sign-row"><div class="cert-sign"><b>${c.signer_name||'-'}</b>${c.signer_title||''}</div></div>
+        <div style="margin-top:16px"><button class="btn btn-primary btn-sm" onclick="printCert('${c.id}')">🖨️ Cetak / Simpan PDF</button></div>
+      </div>`).join('') + `</div>`;
+  }
+}
+
+window.viewRaport = function(id) {
+  const r = allRaports.find(x => x.id === id); if (!r) return;
+  printRaportDoc(r);
+};
+
+function openPrintWindow(title, bodyHtml, opts = {}) {
+  const w = window.open('', '_blank');
+  if (!w) { toast('Popup diblokir browser. Izinkan popup untuk mencetak/simpan PDF.', 'error'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"/><title>${title}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fredoka:wght@500;600;700&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Nunito',sans-serif;color:#262626;padding:32px;}
+    h1,h2,h3{font-family:'Fredoka',sans-serif;}
+    @page{size:${opts.landscape?'A4 landscape':'A4'};margin:${opts.margin!=null?opts.margin:'14mm'};}
+    table{width:100%;border-collapse:collapse;margin-top:10px;}
+    th,td{padding:7px 10px;border:1px solid #e5e5e5;font-size:12px;text-align:left;}
+    th{background:#f5f5f5;font-weight:700;}
+    .doc-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0ea5e9;padding-bottom:14px;margin-bottom:18px;}
+    .doc-brand{display:flex;align-items:center;gap:10px;}
+    .doc-brand-icon{font-size:32px;}
+    .doc-brand-name{font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;color:#0369a1;}
+    .doc-title{text-align:center;font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;margin:6px 0 4px;}
+    .doc-sub{text-align:center;font-size:13px;color:#737373;margin-bottom:18px;}
+    .no-print{margin-top:24px;text-align:center;}
+    .btn-print{font-family:'Nunito',sans-serif;font-weight:700;padding:11px 26px;border-radius:999px;border:none;background:#0ea5e9;color:white;cursor:pointer;font-size:14px;}
+    @media print{ .no-print{display:none;} body{padding:0;} }
+    ${opts.extraCss||''}
+  </style></head><body>${bodyHtml}
+  <div class="no-print"><button class="btn-print" onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF</button></div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch(e) {} }, 400);
+}
+
+function printRaportDoc(r) {
+  const bodyHtml = `
+    <div class="doc-header"><div class="doc-brand"><span class="doc-brand-icon">📚</span><span class="doc-brand-name">${SITE_NAME}</span></div><span style="font-size:12px;color:#737373">Diterbitkan: ${formatDate(r.published_at)}</span></div>
+    <div class="doc-title">Raport Perkembangan Belajar</div>
+    <div class="doc-sub">Periode ${formatDate(r.from)} – ${formatDate(r.to)}</div>
+    <table style="margin-bottom:16px"><tbody>
+      <tr><th style="width:140px">Nama Murid</th><td>${r.student_name}</td><th style="width:140px">Jenjang</th><td>${r.student_grade||'-'}</td></tr>
+    </tbody></table>
+    <h3 style="margin:16px 0 8px;font-size:15px">📅 Rekap Kehadiran</h3>
+    <table><thead><tr><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpha</th><th>Total Sesi</th><th>% Hadir</th></tr></thead>
+    <tbody><tr><td>${r.att_totals.hadir}</td><td>${r.att_totals.izin}</td><td>${r.att_totals.sakit}</td><td>${r.att_totals.alpha}</td><td>${r.att_totals.total}</td><td>${r.att_totals.total?Math.round(r.att_totals.hadir/r.att_totals.total*100)+'%':'-'}</td></tr></tbody></table>
+    <h3 style="margin:16px 0 8px;font-size:15px">🌟 Pencapaian per Program</h3>
+    <table><thead><tr><th>Program</th><th>Jumlah Sesi</th><th>Rata-rata Bintang</th><th>Level Terakhir Dicapai</th></tr></thead>
+    <tbody>${(r.subj_stats||[]).map(s => `<tr><td>${s.subj}</td><td>${s.count}</td><td>${s.avg_star!=null?s.avg_star.toFixed(1)+' / 5':'-'}</td><td>${s.last_level}</td></tr>`).join('')}</tbody></table>
+    <h3 style="margin:16px 0 8px;font-size:15px">📋 Detail Sesi Belajar</h3>
+    <table><thead><tr><th>Tanggal</th><th>Program</th><th>Judul</th><th>Bintang</th><th>Catatan</th></tr></thead>
+    <tbody>${(r.reports||[]).map(x => `<tr><td>${formatDate(x.session_date)}</td><td>${x.subject}</td><td>${x.title}</td><td>${x.stars!=null?x.stars+'/5':'-'}</td><td>${x.description||'-'}</td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:#a3a3a3">Tidak ada sesi tercatat pada periode ini</td></tr>'}</tbody></table>`;
+  openPrintWindow(`Raport - ${r.student_name}`, bodyHtml);
+}
+
+window.printCert = function(id) {
+  const c = allCerts.find(x => x.id === id); if (!c) return;
+  const bodyHtml = `
+    <div class="cert-page">
+      <div class="cert-border">
+        <div class="cert-eyebrow">${SITE_NAME}</div>
+        <div class="cert-title">${c.title}</div>
+        <div class="cert-given">diberikan kepada</div>
+        <div class="cert-name">${c.student_name}</div>
+        <div class="cert-desc">${c.description}</div>
+        <div class="cert-date">${formatDate(c.cert_date)}</div>
+        <div class="cert-sign-row"><div class="cert-sign"><div class="cert-sign-line">${c.signer_name||'-'}</div><div class="cert-sign-title">${c.signer_title||''}</div></div></div>
+      </div>
+    </div>`;
+  const extraCss = `
+    body{padding:0;}
+    .cert-page{width:100%;height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;}
+    .cert-border{border:3px double #0ea5e9;border-radius:18px;padding:56px 64px;text-align:center;width:100%;max-width:900px;background:linear-gradient(135deg,#fdf4ff,#f0f9ff);}
+    .cert-eyebrow{font-size:13px;letter-spacing:3px;font-weight:700;color:#0369a1;text-transform:uppercase;}
+    .cert-title{font-family:'Fredoka',sans-serif;font-size:34px;font-weight:700;color:#262626;margin:14px 0 6px;}
+    .cert-given{font-size:14px;color:#737373;}
+    .cert-name{font-family:'Fredoka',sans-serif;font-size:42px;font-weight:700;color:#0369a1;margin:16px 0;}
+    .cert-desc{font-size:15px;color:#525252;max-width:640px;margin:0 auto 22px;line-height:1.8;}
+    .cert-date{font-size:13px;color:#a3a3a3;margin-bottom:30px;}
+    .cert-sign-row{display:flex;justify-content:center;}
+    .cert-sign-line{font-family:'Fredoka',sans-serif;font-weight:700;font-size:16px;border-top:2px solid #262626;padding-top:8px;min-width:220px;}
+    .cert-sign-title{font-size:12px;color:#737373;margin-top:4px;}
+  `;
+  openPrintWindow(`Sertifikat - ${c.student_name}`, bodyHtml, { landscape:true, margin:'0', extraCss });
+};
+
+document.getElementById('rp-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.filter-tab'); if (!tab) return;
+  document.querySelectorAll('#rp-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active'); activeTab = tab.dataset.tab; renderTabBody();
+});
+
+await loadData();
+renderTabBody();
+
+window.doLogout    = async () => { await signOut(auth); window.location.href = '/login/'; };
+window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
+window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
+</script>
+</body>
+</html>
