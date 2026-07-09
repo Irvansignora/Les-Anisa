@@ -112,6 +112,7 @@ import { toast, formatDate, avatarInitial, getStars, starRow, SUBJECT_ICONS, ATT
 
 // ── Auth ─────────────────────────────────────────────────────────────────
 let currentUser = null;
+let adminName = 'Admin';
 let SITE = { siteName: 'Les Anisa', teacherName: '', teacherTitle: 'Kepala Les Anisa' };
 
 await new Promise((resolve) => {
@@ -123,6 +124,7 @@ await new Promise((resolve) => {
     }
     currentUser = user;
     const name = snap.data()?.name || user.email?.split('@')[0] || 'Admin';
+    adminName = name;
     document.getElementById('sb-name').textContent = name;
     document.getElementById('sb-avatar').textContent = avatarInitial(name);
     try {
@@ -1018,7 +1020,7 @@ window.generateRaportPreview=async function(){
 
   preview.innerHTML=`
     <div class="section-card" style="margin-bottom:14px">
-      <div class="section-head"><h2>👶 ${student.name}</h2><button class="btn btn-primary btn-sm" onclick="printRaport()">🖨️ Cetak / Simpan PDF</button></div>
+      <div class="section-head"><h2>👶 ${student.name}</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" id="publish-raport-btn" onclick="publishRaport()">📤 Terbitkan ke Orang Tua</button><button class="btn btn-primary btn-sm" onclick="printRaport()">🖨️ Cetak / Simpan PDF</button></div></div>
       <div style="padding:16px 20px;font-size:13px;color:var(--neutral-500);font-weight:600">Periode: ${formatDate(from)} – ${formatDate(to)} · ${student.grade||'-'}</div>
       <div style="padding:0 20px 20px">${miniStatCardsHTML(attTotals)}</div>
     </div>
@@ -1027,11 +1029,47 @@ window.generateRaportPreview=async function(){
       <div class="table-wrap"><table><thead><tr><th>Program</th><th>Jumlah Sesi</th><th>Rata-rata Bintang</th><th>Level Terakhir</th></tr></thead>
       <tbody>${subjStats.map(s=>`<tr><td>${SUBJECT_ICONS[s.subj]||'📚'} ${s.subj}</td><td>${s.count}</td><td>${s.avgStar!=null?starRow(Math.round(s.avgStar),{size:14}):'-'}</td><td>${s.lastLevel}</td></tr>`).join('')||'<tr><td colspan="4"><div class="empty-state"><p>Belum ada laporan pada periode ini</p></div></td></tr>'}</tbody></table></div>
     </div>
-    <div class="section-card">
+    <div class="section-card" style="margin-bottom:14px">
       <div class="section-head"><h2>📋 Detail Sesi Belajar</h2></div>
       <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Program</th><th>Judul</th><th>Bintang</th><th>Catatan</th></tr></thead>
       <tbody>${reports.map(r=>`<tr><td style="white-space:nowrap">${formatDate(r.session_date)}</td><td>${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject}</td><td>${r.title}</td><td>${starRow(getStars(r),{size:13})}</td><td style="max-width:220px">${r.description||'-'}</td></tr>`).join('')||'<tr><td colspan="5"><div class="empty-state"><p>Tidak ada sesi tercatat</p></div></td></tr>'}</tbody></table></div>
+    </div>
+    <div class="section-card">
+      <div class="section-head"><h2>📜 Riwayat Diterbitkan ke Orang Tua</h2></div>
+      <div id="raport-history" style="padding:12px 16px"></div>
     </div>`;
+  await loadRaportHistory(student.id);
+};
+
+async function loadRaportHistory(studentId){
+  const wrap=document.getElementById('raport-history'); if(!wrap) return;
+  wrap.innerHTML='<div class="empty-state"><div class="spinner mx-auto"></div></div>';
+  const snap=await getDocs(query(collection(db,'raports'),where('student_id','==',studentId)));
+  const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.published_at?.seconds||0)-(a.published_at?.seconds||0));
+  if(!items.length){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>Belum ada raport yang diterbitkan untuk murid ini</p></div>';return;}
+  wrap.innerHTML=items.map(r=>`<div class="report-card"><div class="report-icon">📄</div><div class="report-body"><div class="report-title">Periode ${formatDate(r.from)} – ${formatDate(r.to)}</div><div class="report-meta">Diterbitkan ${formatDate(r.published_at)} oleh ${r.published_by||'Admin'}</div></div><button class="btn btn-danger btn-sm" onclick="deleteRaportHistory('${r.id}','${studentId}')">🗑 Hapus</button></div>`).join('');
+}
+window.deleteRaportHistory=async function(id,studentId){
+  if(!confirm('Hapus raport ini dari daftar orang tua? Orang tua tidak akan bisa melihatnya lagi.'))return;
+  try{ await deleteDoc(doc(db,'raports',id)); toast('Raport dihapus dari daftar orang tua','info'); await loadRaportHistory(studentId); }
+  catch(e){ toast('Gagal menghapus: '+e.message,'error'); }
+};
+window.publishRaport=async function(){
+  if(!lastRaportData) return;
+  const {student,from,to,reports,attTotals,subjStats}=lastRaportData;
+  const btn=document.getElementById('publish-raport-btn'); btn.disabled=true; btn.textContent='⏳ Menerbitkan...';
+  try{
+    await addDoc(collection(db,'raports'),{
+      student_id: student.id, student_name: student.name, student_grade: student.grade||'',
+      from, to, att_totals: attTotals,
+      subj_stats: subjStats.map(s=>({subj:s.subj,count:s.count,avg_star:s.avgStar,last_level:s.lastLevel})),
+      reports: reports.map(r=>({session_date:r.session_date,subject:r.subject,title:r.title,stars:getStars(r),description:r.description||''})),
+      published_at: serverTimestamp(), published_by: adminName,
+    });
+    toast('Raport berhasil diterbitkan ke orang tua! 📤','success');
+    await loadRaportHistory(student.id);
+  }catch(e){ toast('Gagal menerbitkan: '+e.message,'error'); }
+  btn.disabled=false; btn.textContent='📤 Terbitkan ke Orang Tua';
 };
 
 window.printRaport=function(){
@@ -1099,12 +1137,53 @@ function renderSertifikatForm(){
       <div class="form-group"><label class="form-label">Jabatan Penandatangan</label><input type="text" class="form-input" id="ct-signer-title" value="${SITE.teacherTitle||'Kepala Les Anisa'}"/></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-secondary" onclick="updateCertPreview()">👁️ Preview</button>
+        <button class="btn btn-secondary" id="publish-cert-btn" onclick="publishCertificate()">📤 Terbitkan ke Orang Tua</button>
         <button class="btn btn-primary" onclick="printCertificate()">🖨️ Cetak Sertifikat</button>
       </div>
     </div>
-    <div id="cert-preview"></div>`;
+    <div id="cert-preview"></div>
+    <div class="section-card" style="margin-top:16px">
+      <div class="section-head"><h2>📜 Riwayat Sertifikat Diterbitkan</h2></div>
+      <div id="cert-history" style="padding:12px 16px"></div>
+    </div>`;
   updateCertDefaults();
 }
+
+async function loadCertHistory(studentId){
+  const wrap=document.getElementById('cert-history'); if(!wrap) return;
+  wrap.innerHTML='<div class="empty-state"><div class="spinner mx-auto"></div></div>';
+  const snap=await getDocs(query(collection(db,'certificates'),where('student_id','==',studentId)));
+  const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.published_at?.seconds||0)-(a.published_at?.seconds||0));
+  if(!items.length){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>Belum ada sertifikat yang diterbitkan untuk murid ini</p></div>';return;}
+  wrap.innerHTML=items.map(c=>`<div class="report-card"><div class="report-icon">🏆</div><div class="report-body"><div class="report-title">${c.title}</div><div class="report-meta">Diterbitkan ${formatDate(c.published_at)} oleh ${c.published_by||'Admin'}</div></div><button class="btn btn-danger btn-sm" onclick="deleteCertHistory('${c.id}','${studentId}')">🗑 Hapus</button></div>`).join('');
+}
+window.deleteCertHistory=async function(id,studentId){
+  if(!confirm('Hapus sertifikat ini dari daftar orang tua? Orang tua tidak akan bisa melihatnya lagi.'))return;
+  try{ await deleteDoc(doc(db,'certificates',id)); toast('Sertifikat dihapus dari daftar orang tua','info'); await loadCertHistory(studentId); }
+  catch(e){ toast('Gagal menghapus: '+e.message,'error'); }
+};
+window.publishCertificate=async function(){
+  const studentId=document.getElementById('ct-student').value;
+  const student=raportStudentList.find(s=>s.id===studentId); if(!student) return;
+  const title=document.getElementById('ct-title').value;
+  const desc=document.getElementById('ct-desc').value;
+  const date=document.getElementById('ct-date').value;
+  const signer=document.getElementById('ct-signer').value;
+  const signerTitle=document.getElementById('ct-signer-title').value;
+  const type=document.getElementById('ct-type').value;
+  const btn=document.getElementById('publish-cert-btn'); btn.disabled=true; btn.textContent='⏳ Menerbitkan...';
+  try{
+    await addDoc(collection(db,'certificates'),{
+      student_id: student.id, student_name: student.name, type,
+      title, description: desc, cert_date: date,
+      signer_name: signer, signer_title: signerTitle,
+      published_at: serverTimestamp(), published_by: adminName,
+    });
+    toast('Sertifikat berhasil diterbitkan ke orang tua! 📤','success');
+    await loadCertHistory(student.id);
+  }catch(e){ toast('Gagal menerbitkan: '+e.message,'error'); }
+  btn.disabled=false; btn.textContent='📤 Terbitkan ke Orang Tua';
+};
 
 window.updateCertDefaults=function(){
   const studentId=document.getElementById('ct-student').value;
@@ -1124,6 +1203,7 @@ window.updateCertDefaults=function(){
   document.getElementById('ct-title').value=type==='kelulusan'?tpl.title(subj):tpl.title();
   document.getElementById('ct-desc').value=student?(type==='kelulusan'?tpl.desc(student.name,subj):tpl.desc(student.name)):'';
   updateCertPreview();
+  if(studentId) loadCertHistory(studentId);
 };
 
 window.updateCertPreview=function(){
