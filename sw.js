@@ -1,10 +1,11 @@
-const CACHE_NAME = 'les-anisa-v2';
+const CACHE_NAME = 'les-anisa-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/parent/dashboard.html',
   '/parent/progress.html',
   '/parent/attendance.html',
+  '/parent/raport.html',
   '/assets/css/style.css',
   '/assets/css/dashboard.css',
   '/manifest.json',
