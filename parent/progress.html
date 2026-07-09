@@ -50,6 +50,9 @@
         <p class="page-sub" id="student-name-sub">Laporan sesi calistung si kecil</p>
       </div>
 
+      <!-- Child selector (muncul kalau ortu punya 2 anak atau lebih) -->
+      <div class="filter-tabs" id="child-tabs" style="display:none"></div>
+
       <!-- Filter -->
       <div class="filter-tabs" id="filter-tabs">
         <button class="filter-tab active" data-subject="all">Semua</button>
@@ -108,23 +111,48 @@ document.getElementById('sb-avatar').textContent = avatarInitial(userName);
 
 const stuSnap = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
 const students = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-if (students.length) document.getElementById('student-name-sub').textContent = `Laporan belajar ${students[0].name}`;
 
-const studentIds = students.map(s => s.id);
+let selectedStudentId = students[0]?.id || null;
 let allReports = [];
-if (studentIds.length) {
-  try {
-    const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc')));
-    allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-  } catch (err) {
-    console.warn('progress_reports index belum tersedia, fallback tanpa orderBy:', err);
-    const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds)));
-    allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }))
-      .sort((a,b) => (b.session_date||'').localeCompare(a.session_date||''));
-  }
+let activeSubject = 'all';
+
+function updateSubtitle() {
+  const s = students.find(x => x.id === selectedStudentId);
+  document.getElementById('student-name-sub').textContent = s ? `Laporan belajar ${s.name}` : 'Laporan sesi calistung si kecil';
 }
 
-let activeSubject = 'all';
+function renderChildTabs() {
+  const el = document.getElementById('child-tabs');
+  if (students.length <= 1) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = students.map(s => `<span class="filter-tab${s.id===selectedStudentId?' active':''}" data-id="${s.id}">👶 ${s.name}</span>`).join('');
+  el.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', async () => {
+      selectedStudentId = tab.dataset.id;
+      el.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      updateSubtitle();
+      await loadReports();
+    });
+  });
+}
+
+async function loadReports() {
+  document.getElementById('reports-list').innerHTML = '<div class="empty-state"><div class="spinner mx-auto"></div></div>';
+  allReports = [];
+  if (selectedStudentId) {
+    try {
+      const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','==', selectedStudentId), orderBy('session_date','desc')));
+      allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    } catch (err) {
+      console.warn('progress_reports index belum tersedia, fallback tanpa orderBy:', err);
+      const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','==', selectedStudentId)));
+      allReports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+        .sort((a,b) => (b.session_date||'').localeCompare(a.session_date||''));
+    }
+  }
+  renderReports();
+}
 
 function renderReports() {
   const filtered = activeSubject === 'all' ? allReports : allReports.filter(r => r.subject === activeSubject);
@@ -151,7 +179,9 @@ function renderReports() {
     </div>`;
   }).join('');
 }
-renderReports();
+updateSubtitle();
+renderChildTabs();
+await loadReports();
 
 window.openReportDetail = function(id) {
   const r = allReports.find(x => x.id === id);
@@ -169,9 +199,9 @@ window.openReportDetail = function(id) {
 };
 setupModalClose();
 
-document.querySelectorAll('.filter-tab').forEach(tab => {
+document.querySelectorAll('#filter-tabs .filter-tab').forEach(tab => {
   tab.addEventListener('click', () => {
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     activeSubject = tab.dataset.subject;
     renderReports();
