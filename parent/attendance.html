@@ -81,6 +81,9 @@
         <p class="page-sub" id="student-name-sub">Rekap kehadiran si kecil</p>
       </div>
 
+      <!-- Child selector (muncul kalau ortu punya 2 anak atau lebih) -->
+      <div class="filter-tabs" id="child-tabs" style="display:none"></div>
+
       <!-- Summary stats -->
       <div class="att-summary-grid" id="att-summary">
         <div class="att-summary-item"><div class="att-summary-num" style="color:#15803d">–</div><div class="att-legend-dot" style="background:#dcfce7;margin:4px auto 2px;width:24px;height:6px;border-radius:3px"></div><div class="att-summary-label">Hadir</div></div>
@@ -145,47 +148,72 @@ document.getElementById('sb-avatar').textContent = avatarInitial(userName);
 
 const stuSnap = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
 const students = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-if (students.length) document.getElementById('student-name-sub').textContent = `Rekap kehadiran ${students[0].name}`;
 
-const studentIds = students.map(s => s.id);
+let selectedStudentId = students[0]?.id || null;
 let allAtts = [];
-if (studentIds.length) {
-  try {
-    const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc')));
-    allAtts = attSnap.docs.map(d => d.data());
-  } catch (err) {
-    console.warn('attendance index belum tersedia, fallback tanpa orderBy:', err);
-    const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds)));
-    allAtts = attSnap.docs.map(d => d.data())
-      .sort((a,b) => (b.date||'').localeCompare(a.date||''));
-  }
-}
-
-// Summary
-const counts = { hadir:0, izin:0, sakit:0, alpha:0 };
-allAtts.forEach(a => { if (counts[a.status]!==undefined) counts[a.status]++; });
-const summaryEl = document.getElementById('att-summary');
-const colors = { hadir:'#15803d', izin:'#a16207', sakit:'#1d4ed8', alpha:'#dc2626' };
-const bgs    = { hadir:'#dcfce7', izin:'#fef9c3', sakit:'#dbeafe', alpha:'#fee2e2' };
-const labels = { hadir:'Hadir', izin:'Izin', sakit:'Sakit', alpha:'Alpha' };
-summaryEl.innerHTML = Object.entries(counts).map(([k,v]) =>
-  `<div class="att-summary-item">
-    <div class="att-summary-num" style="color:${colors[k]}">${v}</div>
-    <div style="width:24px;height:6px;border-radius:3px;background:${bgs[k]};margin:4px auto 2px"></div>
-    <div class="att-summary-label">${labels[k]}</div>
-  </div>`
-).join('');
-
-// Build date map
-const dateMap = {};
-allAtts.forEach(a => { dateMap[a.date] = a.status; });
-
-// Calendar
 let viewDate = new Date();
 const DAYS = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const colors = { hadir:'#15803d', izin:'#a16207', sakit:'#1d4ed8', alpha:'#dc2626' };
+const bgs    = { hadir:'#dcfce7', izin:'#fef9c3', sakit:'#dbeafe', alpha:'#fee2e2' };
+const labels = { hadir:'Hadir', izin:'Izin', sakit:'Sakit', alpha:'Alpha' };
+
+function updateSubtitle() {
+  const s = students.find(x => x.id === selectedStudentId);
+  document.getElementById('student-name-sub').textContent = s ? `Rekap kehadiran ${s.name}` : 'Rekap kehadiran si kecil';
+}
+
+function renderChildTabs() {
+  const el = document.getElementById('child-tabs');
+  if (students.length <= 1) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = students.map(s => `<span class="filter-tab${s.id===selectedStudentId?' active':''}" data-id="${s.id}">👶 ${s.name}</span>`).join('');
+  el.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', async () => {
+      selectedStudentId = tab.dataset.id;
+      el.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      updateSubtitle();
+      viewDate = new Date();
+      await loadAttendance();
+    });
+  });
+}
+
+async function loadAttendance() {
+  document.getElementById('att-list').innerHTML = '<div class="empty-state"><div class="spinner mx-auto"></div></div>';
+  allAtts = [];
+  if (selectedStudentId) {
+    try {
+      const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','==', selectedStudentId), orderBy('date','desc')));
+      allAtts = attSnap.docs.map(d => d.data());
+    } catch (err) {
+      console.warn('attendance index belum tersedia, fallback tanpa orderBy:', err);
+      const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','==', selectedStudentId)));
+      allAtts = attSnap.docs.map(d => d.data())
+        .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    }
+  }
+  renderSummary();
+  renderCalendar();
+  renderList();
+}
+
+function renderSummary() {
+  const counts = { hadir:0, izin:0, sakit:0, alpha:0 };
+  allAtts.forEach(a => { if (counts[a.status]!==undefined) counts[a.status]++; });
+  document.getElementById('att-summary').innerHTML = Object.entries(counts).map(([k,v]) =>
+    `<div class="att-summary-item">
+      <div class="att-summary-num" style="color:${colors[k]}">${v}</div>
+      <div style="width:24px;height:6px;border-radius:3px;background:${bgs[k]};margin:4px auto 2px"></div>
+      <div class="att-summary-label">${labels[k]}</div>
+    </div>`
+  ).join('');
+}
 
 function renderCalendar() {
+  const dateMap = {};
+  allAtts.forEach(a => { dateMap[a.date] = a.status; });
   const y = viewDate.getFullYear(), m = viewDate.getMonth();
   document.getElementById('cal-title').textContent = `📆 ${MONTHS_ID[m]} ${y}`;
   const firstDay = new Date(y,m,1).getDay();
@@ -199,15 +227,15 @@ function renderCalendar() {
   }
   document.getElementById('cal-grid').innerHTML = html;
 }
-renderCalendar();
 window.prevMonth = () => { viewDate.setMonth(viewDate.getMonth()-1); renderCalendar(); };
 window.nextMonth = () => { viewDate.setMonth(viewDate.getMonth()+1); renderCalendar(); };
 
-// List
-const listEl = document.getElementById('att-list');
-if (!allAtts.length) {
-  listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data kehadiran</p></div>';
-} else {
+function renderList() {
+  const listEl = document.getElementById('att-list');
+  if (!allAtts.length) {
+    listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data kehadiran</p></div>';
+    return;
+  }
   const emojis = { hadir:'✅', izin:'📝', sakit:'🤒', alpha:'❌' };
   const bgMap  = { hadir:'#dcfce7', izin:'#fef9c3', sakit:'#dbeafe', alpha:'#fee2e2' };
   listEl.innerHTML = allAtts.map(a => `
@@ -223,6 +251,10 @@ if (!allAtts.length) {
     </div>
   `).join('');
 }
+
+updateSubtitle();
+renderChildTabs();
+await loadAttendance();
 
 window.doLogout    = async () => { await signOut(auth); window.location.href = '/login/'; };
 window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
