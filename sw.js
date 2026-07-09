@@ -1,4 +1,4 @@
-const CACHE_NAME = 'les-anisa-v3';
+const CACHE_NAME = 'les-anisa-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
