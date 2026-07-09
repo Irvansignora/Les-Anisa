@@ -76,6 +76,8 @@ h1,h2,h3,h4,h5 { font-family: var(--font-display); line-height: 1.2; }
 .btn-primary:hover { background: var(--coral-600); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249,90,58,.4); }
 .btn-secondary { background: white; color: var(--neutral-700); border: 2px solid var(--neutral-200); }
 .btn-secondary:hover { border-color: var(--neutral-400); background: var(--neutral-50); }
+.btn-danger { background: #fee2e2; color: #dc2626; }
+.btn-danger:hover { background: #fecaca; }
 .btn-sky { background: var(--sky-500); color: white; box-shadow: 0 4px 14px rgba(14,165,233,.35); }
 .btn-sky:hover { background: var(--sky-600); transform: translateY(-1px); }
 .btn-white { background: white; color: var(--neutral-800); font-weight: 700; }
