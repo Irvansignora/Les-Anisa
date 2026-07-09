@@ -80,6 +80,9 @@
         <p class="page-sub">Pantau perkembangan calistung si kecil</p>
       </div>
 
+      <!-- Child selector (muncul kalau ortu punya 2 anak atau lebih) -->
+      <div class="filter-tabs" id="child-tabs" style="display:none"></div>
+
       <!-- Child Profile Card -->
       <div id="child-profile-area"></div>
 
@@ -217,88 +220,150 @@ document.getElementById('sb-avatar').textContent = avatarInitial(userName);
 const stuSnap = await getDocs(query(collection(db,'students'), where('parent_email','==', user.email)));
 const students = stuSnap.docs.map(d => ({ id:d.id, ...d.data() }));
 
-// Render child profile
-const profileEl = document.getElementById('child-profile-area');
-if (students.length > 0) {
-  const s = students[0];
-  profileEl.innerHTML = `<div class="child-profile-card">
-    <div class="child-profile-avatar">${s.photo_url ? `<img src="${s.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:16px"/>` : avatarInitial(s.name)}</div>
-    <div>
-      <div class="child-profile-name">${s.name}</div>
-      <div class="child-profile-grade">${s.grade || ''}</div>
-      <div class="child-profile-tags">
-        ${(s.subjects||[]).map(sub => `<span class="child-profile-tag">${SUBJECT_ICONS[sub]||'📚'} ${sub}</span>`).join('')}
-        <span class="child-profile-tag" style="background:rgba(255,255,255,.35)">${s.is_active !== false ? '✅ Aktif' : '⏸ Nonaktif'}</span>
-      </div>
-    </div>
-  </div>`;
-} else {
-  profileEl.innerHTML = `<div class="section-card" style="padding:16px;margin-bottom:18px;color:var(--neutral-400);font-size:14px;font-weight:600">⚠️ Data murid belum tersedia. Hubungi admin.</div>`;
-}
-
-const studentIds = students.map(s => s.id);
-
-if (studentIds.length) {
-
-// Reports
+let selectedStudentId = students[0]?.id || null;
 let reports = [];
-try {
-  const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds), orderBy('session_date','desc'), limit(20)));
-  reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-} catch (err) {
-  console.warn('progress_reports index belum tersedia, fallback tanpa orderBy:', err);
-  const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','in', studentIds)));
-  reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }))
-    .sort((a,b) => (b.session_date||'').localeCompare(a.session_date||''))
-    .slice(0,20);
+
+function renderChildTabs() {
+  const el = document.getElementById('child-tabs');
+  if (students.length <= 1) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = students.map(s => `<span class="filter-tab${s.id===selectedStudentId?' active':''}" data-id="${s.id}">👶 ${s.name}</span>`).join('');
+  el.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', async () => {
+      selectedStudentId = tab.dataset.id;
+      el.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderProfile();
+      await loadChildData();
+    });
+  });
 }
 
-const starsArr = reports.map(r => getStars(r)).filter(v => v != null);
-const avgStars = starsArr.length ? starsArr.reduce((a,b)=>a+b,0)/starsArr.length : null;
-document.getElementById('st-sessions').textContent = reports.length;
-document.getElementById('st-avg').innerHTML = avgStars !== null ? starRow(avgStars,{size:18}) : '–';
-document.getElementById('st-prog').textContent = students[0]?.subjects?.length || 0;
-
-// Per-program breakdown
-const bySubject = {};
-reports.forEach(r => { if (!bySubject[r.subject]) bySubject[r.subject] = []; bySubject[r.subject].push(r); });
-const pbEl = document.getElementById('prog-breakdown');
-if (!Object.keys(bySubject).length) {
-  pbEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada sesi belajar</p></div>';
-} else {
-  pbEl.innerHTML = Object.entries(bySubject).map(([subj, reps]) => {
-    const starsArr = reps.map(r=>getStars(r)).filter(v=>v!=null);
-    const avg = starsArr.length ? starsArr.reduce((a,b)=>a+b,0)/starsArr.length : null;
-    const latest = reps[0];
-    return `<div class="prog-subject-card">
-      <div class="prog-subject-icon">${SUBJECT_ICONS[subj]||'📚'}</div>
-      <div class="prog-subject-name">${subj}</div>
-      <div class="prog-subject-count">${reps.length} sesi</div>
-      ${avg!==null ? `<div class="prog-subject-avg">${starRow(avg,{size:16})}</div><div class="progress-bar"><div class="progress-fill progress-sun" style="width:${avg/5*100}%"></div></div>` : '<p style="font-size:12px;color:var(--neutral-400);font-weight:600">Belum ada bintang</p>'}
-      ${latest ? `<p style="font-size:11px;color:var(--neutral-400);margin-top:8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Terakhir: ${latest.title}</p>` : ''}
-    </div>`;
-  }).join('');
-}
-
-// Recent reports
-const repEl = document.getElementById('recent-reports');
-const latest5 = reports.slice(0,5);
-if (!latest5.length) {
-  repEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
-} else {
-  repEl.innerHTML = latest5.map(r => {
-    const st = getStars(r);
-    return `<div class="report-card clickable" onclick="openReportDetail('${r.id}')">
-      <div class="report-icon">${SUBJECT_ICONS[r.subject]||'📚'}</div>
-      <div class="report-body">
-        <div class="report-title">${r.title}</div>
-        <div class="report-meta">${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}</div>
-        <div class="report-rating">${starRow(st,{size:14})}</div>
-        <div class="report-desc">${r.description}</div>
-        ${r.teacher_note ? `<div class="report-note-preview">💬 Ada catatan dari guru</div>` : ''}
+function renderProfile() {
+  const profileEl = document.getElementById('child-profile-area');
+  const s = students.find(x => x.id === selectedStudentId);
+  if (s) {
+    profileEl.innerHTML = `<div class="child-profile-card">
+      <div class="child-profile-avatar">${s.photo_url ? `<img src="${s.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:16px"/>` : avatarInitial(s.name)}</div>
+      <div>
+        <div class="child-profile-name">${s.name}</div>
+        <div class="child-profile-grade">${s.grade || ''}</div>
+        <div class="child-profile-tags">
+          ${(s.subjects||[]).map(sub => `<span class="child-profile-tag">${SUBJECT_ICONS[sub]||'📚'} ${sub}</span>`).join('')}
+          <span class="child-profile-tag" style="background:rgba(255,255,255,.35)">${s.is_active !== false ? '✅ Aktif' : '⏸ Nonaktif'}</span>
+        </div>
       </div>
     </div>`;
-  }).join('');
+  } else {
+    profileEl.innerHTML = `<div class="section-card" style="padding:16px;margin-bottom:18px;color:var(--neutral-400);font-size:14px;font-weight:600">⚠️ Data murid belum tersedia. Hubungi admin.</div>`;
+  }
+}
+
+async function loadChildData() {
+  if (!selectedStudentId) {
+    document.getElementById('prog-breakdown').innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada data murid</p></div>';
+    document.getElementById('recent-reports').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
+    document.getElementById('recent-att').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data</p></div>';
+    return;
+  }
+  document.getElementById('prog-breakdown').innerHTML = '<div class="empty-state"><div class="spinner mx-auto"></div></div>';
+  document.getElementById('recent-reports').innerHTML = '<div class="empty-state"><div class="spinner mx-auto"></div></div>';
+  document.getElementById('recent-att').innerHTML = '<div class="empty-state"><div class="spinner mx-auto"></div></div>';
+
+  const s = students.find(x => x.id === selectedStudentId);
+
+  // Reports
+  try {
+    const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','==', selectedStudentId), orderBy('session_date','desc'), limit(20)));
+    reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+  } catch (err) {
+    console.warn('progress_reports index belum tersedia, fallback tanpa orderBy:', err);
+    const repSnap = await getDocs(query(collection(db,'progress_reports'), where('student_id','==', selectedStudentId)));
+    reports = repSnap.docs.map(d => ({ id:d.id, ...d.data() }))
+      .sort((a,b) => (b.session_date||'').localeCompare(a.session_date||''))
+      .slice(0,20);
+  }
+
+  const starsArr = reports.map(r => getStars(r)).filter(v => v != null);
+  const avgStars = starsArr.length ? starsArr.reduce((a,b)=>a+b,0)/starsArr.length : null;
+  document.getElementById('st-sessions').textContent = reports.length;
+  document.getElementById('st-avg').innerHTML = avgStars !== null ? starRow(avgStars,{size:18}) : '–';
+  document.getElementById('st-prog').textContent = s?.subjects?.length || 0;
+
+  // Per-program breakdown
+  const bySubject = {};
+  reports.forEach(r => { if (!bySubject[r.subject]) bySubject[r.subject] = []; bySubject[r.subject].push(r); });
+  const pbEl = document.getElementById('prog-breakdown');
+  if (!Object.keys(bySubject).length) {
+    pbEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada sesi belajar</p></div>';
+  } else {
+    pbEl.innerHTML = Object.entries(bySubject).map(([subj, reps]) => {
+      const starsArr = reps.map(r=>getStars(r)).filter(v=>v!=null);
+      const avg = starsArr.length ? starsArr.reduce((a,b)=>a+b,0)/starsArr.length : null;
+      const latest = reps[0];
+      return `<div class="prog-subject-card">
+        <div class="prog-subject-icon">${SUBJECT_ICONS[subj]||'📚'}</div>
+        <div class="prog-subject-name">${subj}</div>
+        <div class="prog-subject-count">${reps.length} sesi</div>
+        ${avg!==null ? `<div class="prog-subject-avg">${starRow(avg,{size:16})}</div><div class="progress-bar"><div class="progress-fill progress-sun" style="width:${avg/5*100}%"></div></div>` : '<p style="font-size:12px;color:var(--neutral-400);font-weight:600">Belum ada bintang</p>'}
+        ${latest ? `<p style="font-size:11px;color:var(--neutral-400);margin-top:8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Terakhir: ${latest.title}</p>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Recent reports
+  const repEl = document.getElementById('recent-reports');
+  const latest5 = reports.slice(0,5);
+  if (!latest5.length) {
+    repEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
+  } else {
+    repEl.innerHTML = latest5.map(r => {
+      const st = getStars(r);
+      return `<div class="report-card clickable" onclick="openReportDetail('${r.id}')">
+        <div class="report-icon">${SUBJECT_ICONS[r.subject]||'📚'}</div>
+        <div class="report-body">
+          <div class="report-title">${r.title}</div>
+          <div class="report-meta">${SUBJECT_ICONS[r.subject]||'📚'} ${r.subject} · ${formatDate(r.session_date)}</div>
+          <div class="report-rating">${starRow(st,{size:14})}</div>
+          <div class="report-desc">${r.description}</div>
+          ${r.teacher_note ? `<div class="report-note-preview">💬 Ada catatan dari guru</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Attendance
+  let atts = [];
+  try {
+    const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','==', selectedStudentId), orderBy('date','desc'), limit(12)));
+    atts = attSnap.docs.map(d => d.data());
+  } catch (err) {
+    console.warn('attendance index belum tersedia, fallback tanpa orderBy:', err);
+    const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','==', selectedStudentId)));
+    atts = attSnap.docs.map(d => d.data())
+      .sort((a,b) => (b.date||'').localeCompare(a.date||''))
+      .slice(0,12);
+  }
+  const hadir = atts.filter(a=>a.status==='hadir').length;
+  const rate = atts.length ? Math.round(hadir/atts.length*100) : 0;
+  document.getElementById('st-att').textContent = `${rate}%`;
+
+  const attEl = document.getElementById('recent-att');
+  if (!atts.length) {
+    attEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data</p></div>';
+  } else {
+    attEl.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${atts.map(a => {
+          const d = new Date(a.date);
+          return `<div class="att-dot ${a.status}" title="${a.date} — ${ATT_STATUS?.[a.status]?.label || a.status}">${d.getDate()}</div>`;
+        }).join('')}
+      </div>
+      <div style="background:var(--neutral-50);border-radius:var(--radius-md);padding:10px 12px;">
+        <p style="font-size:13px;color:var(--neutral-700);font-weight:700">Kehadiran: <span style="color:var(--lime-600)">${rate}%</span></p>
+        <p style="font-size:12px;color:var(--neutral-400);font-weight:600">${hadir} hadir dari ${atts.length} sesi</p>
+      </div>`;
+  }
 }
 
 window.openReportDetail = function(id) {
@@ -317,47 +382,9 @@ window.openReportDetail = function(id) {
 };
 setupModalClose();
 
-// Attendance
-let atts = [];
-try {
-  const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds), orderBy('date','desc'), limit(12)));
-  atts = attSnap.docs.map(d => d.data());
-} catch (err) {
-  console.warn('attendance index belum tersedia, fallback tanpa orderBy:', err);
-  const attSnap = await getDocs(query(collection(db,'attendance'), where('student_id','in', studentIds)));
-  atts = attSnap.docs.map(d => d.data())
-    .sort((a,b) => (b.date||'').localeCompare(a.date||''))
-    .slice(0,12);
-}
-const hadir = atts.filter(a=>a.status==='hadir').length;
-const rate = atts.length ? Math.round(hadir/atts.length*100) : 0;
-document.getElementById('st-att').textContent = `${rate}%`;
-
-const attEl = document.getElementById('recent-att');
-if (!atts.length) {
-  attEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data</p></div>';
-} else {
-  const statusColors = { hadir:'#dcfce7', izin:'#fef9c3', sakit:'#dbeafe', alpha:'#fee2e2' };
-  const statusEmojis = { hadir:'✅', izin:'📝', sakit:'🤒', alpha:'❌' };
-  attEl.innerHTML = `
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-      ${atts.map(a => {
-        const d = new Date(a.date);
-        return `<div class="att-dot ${a.status}" title="${a.date} — ${ATT_STATUS?.[a.status]?.label || a.status}">${d.getDate()}</div>`;
-      }).join('')}
-    </div>
-    <div style="background:var(--neutral-50);border-radius:var(--radius-md);padding:10px 12px;">
-      <p style="font-size:13px;color:var(--neutral-700);font-weight:700">Kehadiran: <span style="color:var(--lime-600)">${rate}%</span></p>
-      <p style="font-size:12px;color:var(--neutral-400);font-weight:600">${hadir} hadir dari ${atts.length} sesi</p>
-    </div>`;
-}
-
-} else {
-  // Tidak ada murid terhubung ke akun ini — set state kosong di semua section
-  document.getElementById('prog-breakdown').innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada data murid</p></div>';
-  document.getElementById('recent-reports').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Belum ada laporan</p></div>';
-  document.getElementById('recent-att').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Belum ada data</p></div>';
-}
+renderChildTabs();
+renderProfile();
+await loadChildData();
 
 // Sidebar & nav
 window.doLogout    = async () => { await signOut(auth); window.location.href = '/login/'; };
