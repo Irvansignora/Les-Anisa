@@ -337,7 +337,8 @@ function renderStudentTable(students, grade) {
 }
 
 function injectStudentModal() {
-  document.getElementById('modal-host').innerHTML = `
+  document.getElementById('modal-student')?.remove(); // hapus instance lama dulu — cegah duplikat & jangan hapus modal lain di host yang sama
+  document.getElementById('modal-host').insertAdjacentHTML('beforeend', `
   <div class="modal-backdrop hidden" id="modal-student">
     <div class="modal">
       <div class="modal-head"><span class="modal-title" id="modal-student-title">Tambah Murid Baru</span><button class="modal-close" onclick="closeModal('modal-student')">✕</button></div>
@@ -380,7 +381,7 @@ function injectStudentModal() {
         <button class="btn btn-primary btn-sm" id="save-student-btn" onclick="saveStudent()">Simpan Murid</button>
       </div>
     </div>
-  </div>`;
+  </div>`);
   document.querySelectorAll('#s-subjects .subject-pill').forEach(p=>p.addEventListener('click',()=>p.classList.toggle('active')));
   window.openModal  = openModal;
   window.closeModal = closeModal;
@@ -484,7 +485,8 @@ function renderReportList() {
 
 function injectReportModal() {
   const studentOpts=reportStudents.map(s=>`<option value="${s.id}" data-name="${s.name}">${s.name} — ${s.grade}</option>`).join('');
-  document.getElementById('modal-host').innerHTML+=`
+  document.getElementById('modal-report')?.remove(); // hapus instance lama dulu — cegah duplikat & tombol "nyangkut" ke state lama
+  document.getElementById('modal-host').insertAdjacentHTML('beforeend', `
   <div class="modal-backdrop hidden" id="modal-report">
     <div class="modal">
       <div class="modal-head"><span class="modal-title" id="modal-report-title">Tambah Laporan</span><button class="modal-close" onclick="closeModal('modal-report')">✕</button></div>
@@ -522,7 +524,7 @@ function injectReportModal() {
         <button class="btn btn-primary btn-sm" id="save-report-btn" onclick="saveReport()">Simpan</button>
       </div>
     </div>
-  </div>`;
+  </div>`);
 }
 
 window.updateLevels = function() {
