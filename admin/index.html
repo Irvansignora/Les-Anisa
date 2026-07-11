@@ -108,7 +108,8 @@ import { db, auth, collection, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
 import { CLOUDINARY_CONFIG } from '../assets/js/firebase-config.js';
 import { toast, formatDate, avatarInitial, getStars, starRow, SUBJECT_ICONS, ATT_STATUS,
          openModal, closeModal, todayISO, openLightbox, uploadToCloudinary,
-         READING_LEVELS, WRITING_LEVELS, COUNTING_LEVELS, LEVEL_MAP } from '../assets/js/utils.js';
+         READING_LEVELS, WRITING_LEVELS, COUNTING_LEVELS, LEVEL_MAP,
+         CLASS_GROUPS, classGroupOf } from '../assets/js/utils.js';
 
 // ── Auth ─────────────────────────────────────────────────────────────────
 let currentUser = null;
@@ -701,18 +702,30 @@ function openPrintWindow(title,bodyHtml,opts={}){
 // ════════════════════════════════════════════════════════════════
 // PAGE: ATTENDANCE  (Input Harian + Rekap Mingguan + Rekap Bulanan)
 // ════════════════════════════════════════════════════════════════
-let attStudents=[], attRecords={}, attTab='harian', attWeekAnchor=new Date(), attMonthAnchor=new Date();
+let attStudentsAll=[], attStudents=[], attRecords={}, attTab='harian', attGroup='besar', attCurrentDate='', attWeekAnchor=new Date(), attMonthAnchor=new Date();
 
 async function renderAttendance() {
   const content=document.getElementById('content');
   content.innerHTML=`
-    <div class="page-header"><h1 class="page-title">Kehadiran</h1><p class="page-sub">Input harian, rekap mingguan & bulanan</p></div>
+    <div class="page-header"><h1 class="page-title">Kehadiran</h1><p class="page-sub">Input harian, rekap mingguan & bulanan — Kelas Besar dan Kelas Kecil terpisah, jadi absen yang satu tidak memengaruhi yang lain</p></div>
+    <div class="filter-tabs" id="att-group-tabs">
+      <span class="filter-tab${attGroup==='besar'?' active':''}" data-group="besar">${CLASS_GROUPS.besar.icon} Kelas Besar <span style="opacity:.7;font-weight:600">(${CLASS_GROUPS.besar.sub})</span></span>
+      <span class="filter-tab${attGroup==='kecil'?' active':''}" data-group="kecil">${CLASS_GROUPS.kecil.icon} Kelas Kecil <span style="opacity:.7;font-weight:600">(${CLASS_GROUPS.kecil.sub})</span></span>
+    </div>
     <div class="filter-tabs" id="att-tabs">
       <span class="filter-tab${attTab==='harian'?' active':''}" data-tab="harian">📝 Input Harian</span>
       <span class="filter-tab${attTab==='mingguan'?' active':''}" data-tab="mingguan">📊 Rekap Mingguan</span>
       <span class="filter-tab${attTab==='bulanan'?' active':''}" data-tab="bulanan">📅 Rekap Bulanan</span>
     </div>
     <div id="att-tab-body"><div class="empty-state"><div class="spinner mx-auto"></div></div></div>`;
+
+  document.getElementById('att-group-tabs').addEventListener('click',e=>{
+    const tab=e.target.closest('.filter-tab'); if(!tab) return;
+    document.querySelectorAll('#att-group-tabs .filter-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active'); attGroup=tab.dataset.group;
+    attStudents=attStudentsAll.filter(s=>classGroupOf(s.grade)===attGroup);
+    renderAttTabBody();
+  });
 
   document.getElementById('att-tabs').addEventListener('click',e=>{
     const tab=e.target.closest('.filter-tab'); if(!tab) return;
@@ -721,7 +734,8 @@ async function renderAttendance() {
   });
 
   const snap=await getDocs(query(collection(db,'students'),orderBy('name')));
-  attStudents=snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.is_active!==false);
+  attStudentsAll=snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.is_active!==false);
+  attStudents=attStudentsAll.filter(s=>classGroupOf(s.grade)===attGroup);
   renderAttTabBody();
 }
 
@@ -734,20 +748,21 @@ function renderAttTabBody(){
 // ── Tab: Input Harian ──────────────────────────────────────────────
 async function renderAttHarian() {
   const body=document.getElementById('att-tab-body');
+  if(!attCurrentDate) attCurrentDate=todayISO();
   body.innerHTML=`
     <div class="card" style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:10px">
         <label style="font-size:14px;font-weight:700;color:var(--neutral-700)">📅 Tanggal:</label>
         <input type="date" class="form-input" id="att-date" style="width:auto"/>
       </div>
-      <span style="font-size:12px;color:var(--neutral-400);font-weight:600">${attStudents.length} murid aktif</span>
+      <span style="font-size:12px;color:var(--neutral-400);font-weight:600">${attStudents.length} murid aktif · ${CLASS_GROUPS[attGroup].icon} ${CLASS_GROUPS[attGroup].label}</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto">
         <span class="badge badge-green">Hadir: <span id="cnt-hadir">0</span></span>
         <span class="badge badge-sun">Izin: <span id="cnt-izin">0</span></span>
         <span class="badge badge-sky">Sakit: <span id="cnt-sakit">0</span></span>
         <span class="badge badge-coral">Alpha: <span id="cnt-alpha">0</span></span>
       </div>
-      <button class="btn btn-primary" id="save-att-btn" onclick="saveAttendance()">💾 Simpan Kehadiran</button>
+      <button class="btn btn-primary" id="save-att-btn" onclick="saveAttendance()">💾 Simpan Kehadiran ${CLASS_GROUPS[attGroup].label}</button>
     </div>
     <div class="section-card">
       <div class="table-wrap">
@@ -756,22 +771,24 @@ async function renderAttHarian() {
       </div>
     </div>`;
 
-  document.getElementById('att-date').value=todayISO();
-  document.getElementById('att-date').addEventListener('change',e=>loadAttForDate(e.target.value));
-  await loadAttForDate(todayISO());
+  document.getElementById('att-date').value=attCurrentDate;
+  document.getElementById('att-date').addEventListener('change',e=>{attCurrentDate=e.target.value;loadAttForDate(attCurrentDate);});
+  await loadAttForDate(attCurrentDate);
 }
 
 async function loadAttForDate(date) {
   if(!date)return;
   attRecords={};
   attStudents.forEach(s=>{attRecords[s.id]={status:'hadir',note:''};});
+  // Hanya ambil & mencocokkan data untuk murid di kelompok kelas yang aktif saat ini
+  // (Kelas Besar / Kelas Kecil) — murid kelompok lain tidak pernah ikut termuat di sini.
   const snap=await getDocs(query(collection(db,'attendance'),where('date','==',date)));
-  snap.docs.forEach(d=>{const data=d.data();attRecords[data.student_id]={status:data.status,note:data.note||'',docId:d.id};});
+  snap.docs.forEach(d=>{const data=d.data();if(attRecords[data.student_id]){attRecords[data.student_id]={status:data.status,note:data.note||'',docId:d.id};}});
   renderAttTable();
 }
 
 function renderAttTable() {
-  if(!attStudents.length){document.getElementById('att-body').innerHTML='<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">👶</div><p>Belum ada murid aktif</p></div></td></tr>';return;}
+  if(!attStudents.length){document.getElementById('att-body').innerHTML=`<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">👶</div><p>Belum ada murid aktif di ${CLASS_GROUPS[attGroup].label}</p></div></td></tr>`;return;}
   document.getElementById('att-body').innerHTML=attStudents.map(s=>{
     const rec=attRecords[s.id]||{status:'hadir',note:''};
     const btns=['hadir','izin','sakit','alpha'].map(st=>`<button class="att-btn ${st}${rec.status===st?' active':''}" onclick="setAttStatus('${s.id}','${st}')">${ATT_STATUS[st].label}</button>`).join('');
@@ -787,14 +804,17 @@ window.saveAttendance=async function(){
   const date=document.getElementById('att-date').value;
   if(!date){toast('Pilih tanggal terlebih dahulu','error');return;}
   const btn=document.getElementById('save-att-btn'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
+  const groupLabel=CLASS_GROUPS[attGroup].label;
   try{
+    // attRecords hanya berisi murid dari kelompok yang sedang aktif (attGroup),
+    // jadi menyimpan di sini tidak akan pernah menimpa data kelompok lainnya.
     for(const[studentId,rec]of Object.entries(attRecords)){
       const data={student_id:studentId,date,status:rec.status,note:rec.note||'',updated_at:serverTimestamp()};
       if(rec.docId){await updateDoc(doc(db,'attendance',rec.docId),data);}else{data.created_at=serverTimestamp();const nd=await addDoc(collection(db,'attendance'),data);attRecords[studentId].docId=nd.id;}
     }
-    toast(`Kehadiran ${date} berhasil disimpan!`,'success');
+    toast(`Kehadiran ${groupLabel} - ${date} berhasil disimpan!`,'success');
   }catch(e){toast('Gagal menyimpan: '+e.message,'error');}
-  btn.disabled=false; btn.textContent='💾 Simpan Kehadiran';
+  btn.disabled=false; btn.textContent=`💾 Simpan Kehadiran ${groupLabel}`;
 };
 
 // ── Tab: Rekap Mingguan ─────────────────────────────────────────────
@@ -810,7 +830,7 @@ async function renderAttMingguan(){
   const totals=totalsOf(rows);
 
   const dayHeaders=days.map(d=>`<th style="text-align:center">${DAY_SHORT[d.getDay()]}<br><span style="font-weight:400;color:var(--neutral-400)">${d.getDate()}</span></th>`).join('');
-  const bodyRows=!attStudents.length?`<tr><td colspan="${days.length+3}"><div class="empty-state"><div class="empty-icon">👶</div><p>Belum ada murid aktif</p></div></td></tr>`
+  const bodyRows=!attStudents.length?`<tr><td colspan="${days.length+3}"><div class="empty-state"><div class="empty-icon">👶</div><p>Belum ada murid aktif di ${CLASS_GROUPS[attGroup].label}</p></div></td></tr>`
     :attStudents.map(s=>{
       const cells=days.map(d=>{
         const st=dayMap[s.id]?.[isoDate(d)];
@@ -827,6 +847,7 @@ async function renderAttMingguan(){
       <div style="font-weight:700;font-size:14px;min-width:200px">📆 ${fmtRangeLabel(start,end)}</div>
       <button class="cal-nav-btn" onclick="shiftAttWeek(1)" aria-label="Minggu berikutnya">›</button>
       <button class="btn btn-secondary btn-sm" onclick="attWeekAnchor=new Date();renderAttMingguan();">Minggu Ini</button>
+      <span class="badge badge-sky">${CLASS_GROUPS[attGroup].icon} ${CLASS_GROUPS[attGroup].label}</span>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-secondary btn-sm" onclick="exportAttWeekCSV()">⬇️ Export CSV</button>
         <button class="btn btn-primary btn-sm" onclick="printAttWeek()">🖨️ Cetak Rekap</button>
@@ -837,26 +858,26 @@ async function renderAttMingguan(){
       <div class="table-wrap"><table><thead><tr><th>Murid</th><th>Jenjang</th>${dayHeaders}<th style="text-align:center">% Hadir</th></tr></thead><tbody>${bodyRows}</tbody></table></div>
     </div>`;
 
-  window._attWeekData={start,end,rows,totals};
+  window._attWeekData={start,end,rows,totals,groupLabel:CLASS_GROUPS[attGroup].label};
 }
 window.shiftAttWeek=function(dir){attWeekAnchor.setDate(attWeekAnchor.getDate()+dir*7);renderAttMingguan();};
 window.exportAttWeekCSV=function(){
-  const {start,end,rows}=window._attWeekData;
-  downloadCSV(`rekap-mingguan-${isoDate(start)}_${isoDate(end)}.csv`,
+  const {start,end,rows,groupLabel}=window._attWeekData;
+  downloadCSV(`rekap-mingguan-${groupLabel.replace(' ','-')}-${isoDate(start)}_${isoDate(end)}.csv`,
     ['Nama','Jenjang','Hadir','Izin','Sakit','Alpha','Total Sesi','% Hadir'],
     rows.map(r=>[r.name,r.grade,r.hadir,r.izin,r.sakit,r.alpha,r.total,r.total?Math.round(r.hadir/r.total*100)+'%':'-']));
 };
 window.printAttWeek=function(){
-  const {start,end,rows,totals}=window._attWeekData;
+  const {start,end,rows,totals,groupLabel}=window._attWeekData;
   const bodyHtml=`
     <div class="doc-header"><div class="doc-brand"><span class="doc-brand-icon">📚</span><span class="doc-brand-name">${SITE.siteName}</span></div><span style="font-size:12px;color:#737373">Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</span></div>
-    <div class="doc-title">Rekap Kehadiran Mingguan</div>
+    <div class="doc-title">Rekap Kehadiran Mingguan — ${groupLabel}</div>
     <div class="doc-sub">${fmtRangeLabel(start,end)}</div>
     <table><thead><tr><th>Nama Murid</th><th>Jenjang</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpha</th><th>Total Sesi</th><th>% Hadir</th></tr></thead>
     <tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.grade}</td><td>${r.hadir}</td><td>${r.izin}</td><td>${r.sakit}</td><td>${r.alpha}</td><td>${r.total}</td><td>${r.total?Math.round(r.hadir/r.total*100)+'%':'-'}</td></tr>`).join('')}
     <tr style="font-weight:700;background:#f5f5f5"><td colspan="2">TOTAL</td><td>${totals.hadir}</td><td>${totals.izin}</td><td>${totals.sakit}</td><td>${totals.alpha}</td><td>${totals.total}</td><td>-</td></tr>
     </tbody></table>`;
-  openPrintWindow('Rekap Kehadiran Mingguan',bodyHtml);
+  openPrintWindow(`Rekap Kehadiran Mingguan - ${groupLabel}`,bodyHtml);
 };
 
 // ── Tab: Rekap Bulanan ──────────────────────────────────────────────
@@ -870,13 +891,14 @@ async function renderAttBulanan(){
   const monthValue=`${attMonthAnchor.getFullYear()}-${pad2(attMonthAnchor.getMonth()+1)}`;
   const label=`${MONTH_NAMES[attMonthAnchor.getMonth()]} ${attMonthAnchor.getFullYear()}`;
 
-  const bodyRows=!attStudents.length?`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👶</div><p>Belum ada murid aktif</p></div></td></tr>`
+  const bodyRows=!attStudents.length?`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👶</div><p>Belum ada murid aktif di ${CLASS_GROUPS[attGroup].label}</p></div></td></tr>`
     :rows.map(r=>{const pct=r.total?Math.round(r.hadir/r.total*100):0;const pctColor=pct>=80?'#15803d':pct>=50?'#a16207':'#dc2626';return `<tr><td>${r.name}</td><td style="font-size:12px;color:var(--neutral-500)">${r.grade}</td><td style="text-align:center"><span class="badge badge-green">${r.hadir}</span></td><td style="text-align:center"><span class="badge badge-sun">${r.izin}</span></td><td style="text-align:center"><span class="badge badge-sky">${r.sakit}</span></td><td style="text-align:center"><span class="badge badge-coral">${r.alpha}</span></td><td style="text-align:center;font-weight:700">${r.total}</td><td style="text-align:center;font-weight:700;color:${pctColor}">${r.total?pct+'%':'-'}</td></tr>`;}).join('');
 
   body.innerHTML=`
     <div class="card" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px">
       <label style="font-size:14px;font-weight:700;color:var(--neutral-700)">📅 Bulan:</label>
       <input type="month" class="form-input" id="att-month" style="width:auto" value="${monthValue}"/>
+      <span class="badge badge-sky">${CLASS_GROUPS[attGroup].icon} ${CLASS_GROUPS[attGroup].label}</span>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-secondary btn-sm" onclick="exportAttMonthCSV()">⬇️ Export CSV</button>
         <button class="btn btn-primary btn-sm" onclick="printAttMonth()">🖨️ Cetak Rekap</button>
@@ -891,25 +913,25 @@ async function renderAttBulanan(){
     const[y,m]=e.target.value.split('-').map(Number); if(!y||!m) return;
     attMonthAnchor=new Date(y,m-1,1); renderAttBulanan();
   });
-  window._attMonthData={rows,totals,label};
+  window._attMonthData={rows,totals,label,groupLabel:CLASS_GROUPS[attGroup].label};
 }
 window.exportAttMonthCSV=function(){
-  const {rows,label}=window._attMonthData;
-  downloadCSV(`rekap-bulanan-${label.replace(' ','-')}.csv`,
+  const {rows,label,groupLabel}=window._attMonthData;
+  downloadCSV(`rekap-bulanan-${groupLabel.replace(' ','-')}-${label.replace(' ','-')}.csv`,
     ['Nama','Jenjang','Hadir','Izin','Sakit','Alpha','Total Sesi','% Hadir'],
     rows.map(r=>[r.name,r.grade,r.hadir,r.izin,r.sakit,r.alpha,r.total,r.total?Math.round(r.hadir/r.total*100)+'%':'-']));
 };
 window.printAttMonth=function(){
-  const {rows,totals,label}=window._attMonthData;
+  const {rows,totals,label,groupLabel}=window._attMonthData;
   const bodyHtml=`
     <div class="doc-header"><div class="doc-brand"><span class="doc-brand-icon">📚</span><span class="doc-brand-name">${SITE.siteName}</span></div><span style="font-size:12px;color:#737373">Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</span></div>
-    <div class="doc-title">Rekap Kehadiran Bulanan</div>
+    <div class="doc-title">Rekap Kehadiran Bulanan — ${groupLabel}</div>
     <div class="doc-sub">${label}</div>
     <table><thead><tr><th>Nama Murid</th><th>Jenjang</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpha</th><th>Total Sesi</th><th>% Hadir</th></tr></thead>
     <tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.grade}</td><td>${r.hadir}</td><td>${r.izin}</td><td>${r.sakit}</td><td>${r.alpha}</td><td>${r.total}</td><td>${r.total?Math.round(r.hadir/r.total*100)+'%':'-'}</td></tr>`).join('')}
     <tr style="font-weight:700;background:#f5f5f5"><td colspan="2">TOTAL</td><td>${totals.hadir}</td><td>${totals.izin}</td><td>${totals.sakit}</td><td>${totals.alpha}</td><td>${totals.total}</td><td>-</td></tr>
     </tbody></table>`;
-  openPrintWindow('Rekap Kehadiran Bulanan',bodyHtml);
+  openPrintWindow(`Rekap Kehadiran Bulanan - ${groupLabel}`,bodyHtml);
 };
 
 // ════════════════════════════════════════════════════════════════
