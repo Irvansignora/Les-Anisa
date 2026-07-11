@@ -95,6 +95,19 @@ export const GRADES = [
   'SD Kelas 4','SD Kelas 5','SD Kelas 6'
 ];
 export const AGE_GROUPS = ['3 tahun','4 tahun','5 tahun','6 tahun','7 tahun','8 tahun','9 tahun','10 tahun','11 tahun','12 tahun'];
+
+// ── Kelompok kelas (Besar vs Kecil) ─────────────────────────────────────
+// Dipakai supaya absensi Kelas Besar (SD) & Kelas Kecil (PAUD/TK) terpisah
+// total — simpan/reset kelompok yang satu tidak pernah menyentuh data
+// kelompok yang lain.
+export const CLASS_GROUPS = {
+  besar: { label: 'Kelas Besar', sub: 'SD',        icon: '🎒' },
+  kecil: { label: 'Kelas Kecil', sub: 'PAUD & TK',  icon: '🧸' },
+};
+export function classGroupOf(grade) {
+  if (!grade) return 'kecil'; // jenjang belum diisi dianggap kelas kecil (default paling aman)
+  return grade.includes('SD') ? 'besar' : 'kecil';
+}
 export const ATT_STATUS = {
   hadir: { label:'Hadir',  badge:'badge-green', icon:'✓' },
   izin:  { label:'Izin',   badge:'badge-amber', icon:'I' },
